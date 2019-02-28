@@ -20,7 +20,7 @@ var ptRPath = path.join(appPath, "assets/pointR/inst/App")
 //const killStr = "taskkill /im Rscript.exe /f"
 var killStr = ""
 var execPath = "Rscript"
-
+var rscriptLoadError=false
 const newLocal = "/usr/bin/Rscript";
 /*
 if(process.platform == WINDOWS){
@@ -46,8 +46,8 @@ if(process.platform == WINDOWS){
   throw new Error("not on windows or mac os or linux os?")
 }
 */
-execPath ="/usr/bin/Rscript";
-
+//execPath ="/usr/bin/Rscript";
+//execPath="xxx"
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 
@@ -60,8 +60,14 @@ pointRProcess.stdout.on('data', (data) => {
   console.log(`stdout:${data}`)
 })
 pointRProcess.stderr.on('data', (data) => {
+  console.log('prR.stderr')
   console.log(`stderr:${data}`)
 })
+
+pointRProcess.on('error', function(err) {
+  console.log('failure : ' + err);
+  rscriptLoadError=true
+});
 
 // pointR BrowserWindow
 let mainWindow
@@ -72,10 +78,21 @@ function createWindow () {
       //icon: path.join(__dirname, 'build/icon.icns'),
       width:600, height:400
     })
+    if(!!rscriptLoadError){ // simple check for loading pointR via Rscript
+      dialog.showMessageBox(
+        { 
+          message: "Rscript load error :-(\nHave you installed R and pointR?", 
+          buttons: ["OK"], 
+        }, 
+        (res, checked) => {cleanUpApplication()}
+      )
+      return null
+    }
     console.log(new Date().toISOString()+'::showing loading');
     loading.loadURL(`file://${__dirname}/src/splash.html`);
     loading.once('show', () => {
       console.log(new Date().toISOString()+'::show loading')
+      
       mainWindow = new BrowserWindow({
         //icon: path.join(__dirname, 'build/icon.icns'),
 	      webPreferences: {
@@ -103,7 +120,7 @@ function createWindow () {
       // console.log(port)
       // long loading html
       //childWindow.loadURL('http://127.0.0.1:'+port2)
-      mainWindow.loadURL('http://127.0.0.1:'+port)
+      mainWindow.loadURL('http://127.0.0.1:' + port)
       //mainWindow.setMenu(null)
       mainWindow.setMenuBarVisibility(false)
       //mainWindow.setAutoHideMenuBar(true)

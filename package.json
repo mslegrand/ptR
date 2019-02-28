@@ -1,6 +1,6 @@
 {
   "name": "electron-pointr-deploy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "IDE for svgR",
   "main": "main.js",
   "scripts": {
