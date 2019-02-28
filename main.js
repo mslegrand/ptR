@@ -1,6 +1,6 @@
 //require('electron-reload')(__dirname)
 
-const {app, BrowserWindow, util, dialog} = require('electron')
+const {app, BrowserWindow, util, dialog, shell} = require('electron')
 
 const version ="v.0.3.9.17"
 
@@ -15,13 +15,14 @@ const WINDOWS = "win32"
 const LINUX = "linux"
 var confirmExit = false
 var appPath = app.getAppPath()
-var ptRPath = path.join(appPath, "assets/pointR/inst/App")
+//var ptRPath = path.join(appPath, "assets/pointR/inst/App")
 
 //const killStr = "taskkill /im Rscript.exe /f"
 var killStr = ""
 var execPath = "Rscript"
 var rscriptLoadError=false
 const newLocal = "/usr/bin/Rscript";
+
 /*
 if(process.platform == WINDOWS){
   //killStr = "taskkill /im Rscript.exe /f"
@@ -51,6 +52,7 @@ if(process.platform == WINDOWS){
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 
+
 // pointRProcess
 //const pointRProcess = child.spawn(execPath, ["-e", "library(shiny);shinyOptions(electron=TRUE);runApp('"+ptRPath+"', port="+port+")"])
 const pointRProcess = child.spawn(execPath, ["-e", "library(shiny);shinyOptions(electron=TRUE);shiny::runApp(system.file('App', package = 'pointR'), port="+port+")"])
@@ -73,91 +75,92 @@ pointRProcess.on('error', function(err) {
 let mainWindow
 
 function createWindow () {
-     console.log('create-window')
-     let loading = new BrowserWindow({show: false, frame: false, 
+  console.log('create-window')
+  let loading = new BrowserWindow({
+    show: false, frame: false, 
       //icon: path.join(__dirname, 'build/icon.icns'),
-      width:600, height:400
-    })
-    if(!!rscriptLoadError){ // simple check for loading pointR via Rscript
-      dialog.showMessageBox(
-        { 
+    width:600, height:400
+  })
+  if(!!rscriptLoadError){ // simple check for loading pointR via Rscript
+    dialog.showMessageBox(
+      { 
           message: "Rscript load error :-(\nHave you installed R and pointR?", 
           buttons: ["OK"], 
-        }, 
-        (res, checked) => {cleanUpApplication()}
-      )
-      return null
-    }
-    console.log(new Date().toISOString()+'::showing loading');
-    loading.loadURL(`file://${__dirname}/src/splash.html`);
-    loading.once('show', () => {
-      console.log(new Date().toISOString()+'::show loading')
+      }, 
+      (res, checked) => {cleanUpApplication()}
+    )
+    return null
+  }
+  console.log(new Date().toISOString()+'::showing loading');
+  loading.loadURL(`file://${__dirname}/src/splash.html`);
+  loading.once('show', () => {
+    console.log(new Date().toISOString()+'::show loading')
       
-      mainWindow = new BrowserWindow({
-        //icon: path.join(__dirname, 'build/icon.icns'),
-	      webPreferences: {
+    mainWindow = new BrowserWindow({
+      //icon: path.join(__dirname, 'build/icon.icns'),
+	    webPreferences: {
 		    nodeIntegration: false,
 		    preload: __dirname  + "/src/preloadPtr.js"   //"preload.js"
-		},
-	      show:false, 
-	      width: 1200, 
-	      height: 600, 
-	      title:"pointeR   --version:"  +version
-	}) 
-	mainWindow.webContents.once('dom-ready', () => {
-        console.log(new Date().toISOString()+'::mainWindow loaded')
-        setTimeout( () => {
-          mainWindow.show()	
-          if(process.platform=MACOS){
-            mainWindow.reload()
-	    //childWindow.reload()
-          }
-          loading.hide()
-          loading.close()
-        }, 3000)
+		  },
+	    show:false, 
+	    width: 1200, 
+	    height: 600, 
+	    title:"ptR" 
+	  }) 
+	  mainWindow.webContents.once('dom-ready', () => {
+      console.log(new Date().toISOString()+'::mainWindow loaded')
+      setTimeout( () => {
+        mainWindow.show()	
+        if(process.platform=MACOS){
+          mainWindow.reload()
+	        //childWindow.reload()
+        }
+        loading.hide()
+        loading.close()
+      }, 3000)
 
-      })
-      // console.log(port)
-      // long loading html
-      //childWindow.loadURL('http://127.0.0.1:'+port2)
-      mainWindow.loadURL('http://127.0.0.1:' + port)
-      //mainWindow.setMenu(null)
-      mainWindow.setMenuBarVisibility(false)
-      //mainWindow.setAutoHideMenuBar(true)
-      mainWindow.webContents.on('did-finish-load', function() {
-        console.log(new Date().toISOString()+'::did-finish-load')
-	});
-      mainWindow.webContents.on('did-start-load', function() {
-        console.log(new Date().toISOString()+'::did-start-load')
-      });
-      mainWindow.webContents.on('did-stop-load', function() {
-        console.log(new Date().toISOString()+'::did-stop-load')
-      });
-      mainWindow.webContents.on('dom-ready', function() {
-        console.log(new Date().toISOString()+'::dom-ready')
-      });
+    })
+    // console.log(port)
+    // long loading html
+    //childWindow.loadURL('http://127.0.0.1:'+port2)
+    mainWindow.loadURL('http://127.0.0.1:' + port)
+    //mainWindow.setMenu(null)
+    mainWindow.setMenuBarVisibility(false)
+    //mainWindow.setAutoHideMenuBar(true)
+    mainWindow.webContents.on('did-finish-load', function() {
+      console.log(new Date().toISOString()+'::did-finish-load')
+	  });
+    mainWindow.webContents.on('did-start-load', function() {
+      console.log(new Date().toISOString()+'::did-start-load')
+    });
+    mainWindow.webContents.on('did-stop-load', function() {
+      console.log(new Date().toISOString()+'::did-stop-load')
+    });
+    mainWindow.webContents.on('dom-ready', function() {
+      console.log(new Date().toISOString()+'::dom-ready')
+    });
       
-      // Open the DevTools.
-        //mainWindow.webContents.openDevTools()
+    // Open the DevTools.
+    //mainWindow.webContents.openDevTools()
       
-      mainWindow.on('close',  function(event){
-	      console.log("mainWindow::close event")
-	       console.log("confirmExit="+JSON.stringify(confirmExit))
-	      if( !confirmExit ){
-		      event.preventDefault();
-		       console.log("mainWindow:: after e.preventDefault()")
-		      mainWindow.webContents.send( 'appCloseCmd', 'now') 
-	      }
-	});
+    mainWindow.on('close',  function(event){
+	    console.log("mainWindow::close event")
+	    console.log("confirmExit="+JSON.stringify(confirmExit))
+	    if( !confirmExit ){
+		    event.preventDefault();
+		    console.log("mainWindow:: after e.preventDefault()")
+		    mainWindow.webContents.send( 'appCloseCmd', 'now') 
+	    }
+	  });
       
       // Emitted when the window is closed.
-      mainWindow.on('closed', function () {
-        console.log(new Date().toISOString()+'::mainWindow.closed()')
-        cleanUpApplication()
-      })
+    mainWindow.on('closed', function () {
+      console.log(new Date().toISOString()+'::mainWindow.closed()')
+      cleanUpApplication()
     })
-    loading.show()
-}
+  }) // end of loadonce
+  loading.show()
+} //end of mainWindow creatio
 
 // appRunner
 let appRunnerProcess =null
@@ -189,30 +192,27 @@ ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
   //event.sender.send('asynchronous-reply', 'pong')
   // create appRunner if not running 
   if(!appRunnerProcess){
-	appRunnerProcess=createAppRunnerProcess(argPath, argTabId) 
+	  appRunnerProcess=createAppRunnerProcess(argPath, argTabId) 
   }
   if(!appRunnerWindow  ){
-	appRunnerWindow=createAppWindow(port2 )
-	 appRunnerWindow.webContents.once('dom-ready', () => {
-        console.log(new Date().toISOString()+'::appRunnerWindow loaded')
-        setTimeout( () => {
-          appRunnerWindow.show()
-          if(process.platform=MACOS){
-            appRunnerWindow.reload()
-          }
-	}, 2000)
+	  appRunnerWindow=createAppWindow(port2 )
+	  appRunnerWindow.webContents.once('dom-ready', () => {
+      console.log(new Date().toISOString()+'::appRunnerWindow loaded')
+      setTimeout( () => {
+        appRunnerWindow.show()
+        if(process.platform=MACOS){
+          appRunnerWindow.reload()
+        }
+	    }, 2000)
 
-      }) 
-	appRunnerWindow.setMenuBarVisibility(false)  
-	appRunnerWindow.webContents.on('dom-ready', () => {
+    }) // endof once dom-ready
+	  appRunnerWindow.setMenuBarVisibility(false)  
+	  appRunnerWindow.webContents.on('dom-ready', () => {
 	    mainWindow.webContents.send('appRunner', 'loaded', argTabId);
-	});      
-  }
-  
-  
-  
- appRunnerWindow.on('closed', function () {
-        console.log(new Date().toISOString()+'::appRunnerWindow.closed()')
+	  });    // endof ondom-ready  
+  } // endof !appRunner
+  appRunnerWindow.on('closed', function () {
+    console.log(new Date().toISOString()+'::appRunnerWindow.closed()')
 	 mainWindow.webContents.send('appRunner', 'unloaded', '');
 	 appRunnerProcess.kill();
 	 appRunnerProcess=null
@@ -227,7 +227,14 @@ ipcMain.on('confirmExitMssg', (event, arg)=>{
 	event.returnValue='hello';
 })
 
+ipcMain.on('cmdSetTitle', 
+  (event,arg1, arg2)=>{
+    console.log(new Date().toISOString()+':: ipcMain.on cmdSetTitle')
+    mainWindow.setTitle(arg1 + " " + arg2)
+  }
+)
 
+shell.openExternal('https://github.com');
 
 function cleanUpApplication(){
    console.log(new Date().toISOString()+'::cleanUpApplication')
