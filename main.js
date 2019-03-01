@@ -1,14 +1,16 @@
 //require('electron-reload')(__dirname)
 
 const { app, BrowserWindow, util, dialog, shell } = require('electron')
-
-const version = "v.0.3.9.17"
-
 const path = require('path')
-const url = require('url')
-const port = "9191"
+const  portHelper  = require('./src/portHelper')
 
-const port2 = "9292"
+//const version = "v.0.3.9.17"
+
+
+const url = require('url')
+const port = portHelper.randomPort()
+console.log('portMain='+port)
+let port2 = null
 const child = require('child_process');
 const MACOS = "darwin"
 const WINDOWS = "win32"
@@ -167,6 +169,8 @@ let appRunnerProcess = null
 let appRunnerWindow = null
 function createAppRunnerProcess(appPath2, argTabId) {
   console.log('inside createAppRunnerProcess')
+  port2=portHelper.randomPort()
+  console.log("portAppRunner="+port2)
   let childProcess2 = child.spawn(execPath, ["-e", "shiny::runApp('" + appPath2 + "', port=" + port2 + ")"])
   childProcess2.stdout.on('data', (data) => {
     mainWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
