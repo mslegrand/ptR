@@ -241,7 +241,16 @@ ipcMain.on('cmdOpenLink',
   }
 )
 
-//shell.openExternal('https://github.com');
+ipcMain.on('cmdStopAppRunner',
+  (event, arg1, arg2) => {
+    console.log(new Date().toISOString() + ':: ipcMain.on cmdStopAppRunner')
+    console.log(arg1 + 'arg2')
+    if (!!appRunnerWindow){
+      appRunnerWindow.close()
+    }
+  }
+)
+
 
 function cleanUpApplication() {
   console.log(new Date().toISOString() + '::cleanUpApplication')
