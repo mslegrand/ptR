@@ -1,10 +1,9 @@
 //require('electron-reload')(__dirname)
 
+// inspired by https://github.com/ksasso/useR_electron_meet_shiny
 const { app, BrowserWindow, util, dialog, shell } = require('electron')
 const path = require('path')
 const  portHelper  = require('./src/portHelper')
-
-//const version = "v.0.3.9.17"
 
 
 const url = require('url')
