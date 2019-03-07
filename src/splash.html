@@ -3,11 +3,39 @@
   <head>
     <meta charset="UTF-8">
     <title>Hello World!</title>
+    <style>
+* {
+  box-sizing: border-box;
+}
+body {
+  background-color: #FFFFFF;
+}
+/* Create two equal columns that floats next to each other */
+.column {
+  float: left;
+  width: 50%;
+  padding: 10px;
+  height: 300px; /* Should be removed. Only for demonstration */
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+</style>
   </head>
-  <body>
+  <body >
     
     <!-- All of the Node.js APIs are available in this renderer process. -->
-     <p><img src="../assets/images/gears.svg"> </p>
-    <h1>PointR is Loading...</h1>
-  </body>
+
+     <div class="row">
+   <div id="splashTextBox" class="column" style="height:300px;width:
+   300px;overflow:auto;background-color:black;color:white;scrollbar-base-color:gold;font-family:sans-serif;padding:10px;">
+   Loading pointR ...
+   </div>
+   <div class="column"><img src="../assets/images/gears.svg"> </div>
+    </div>
+      </body>
 </html>

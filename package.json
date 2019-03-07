@@ -1,6 +1,6 @@
 {
   "name": "electron-pointr-deploy",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "IDE for svgR",
   "main": "main.js",
   "scripts": {
@@ -47,11 +47,15 @@
   "author": "Mark Stephen Legrand <slegrand3.14@gmail.com>",
   "license": "GPL-3.0",
   "devDependencies": {
-    "electron": "^4.0.5",
+    "electron": "^4.0.7",
     "electron-builder": "^20.38.5"
   },
   "bugs": {
     "url": "https://github.com/mslegrand/pointRDeployR/issues"
   },
-  "homepage": "https://github.com/mslegrand/pointRDeployR#readme"
+  "homepage": "https://github.com/mslegrand/pointRDeployR#readme",
+  "dependencies": {
+    "electron-version": "^2.0.1",
+    "replace-string": "^2.0.0"
+  }
 }
