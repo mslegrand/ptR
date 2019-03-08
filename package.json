@@ -1,6 +1,6 @@
 {
   "name": "ptr",
-  "version": "0.0.4",
+  "version": "0.4.0",
   "description": "IDE for svgR",
   "main": "main.js",
   "scripts": {
