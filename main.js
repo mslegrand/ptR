@@ -61,7 +61,7 @@ startPointProcess =()=>{
     console.log(`stdout:${data}`)
   })
   pointRProcess.stderr.on('data', (data) => {
-    console.log('prR.stderr')
+    console.log('ptR.stderr')
     console.log(`stderr:${data}`)
   })
   pointRProcess.on('error', function (err) { // todo: handle error
@@ -95,9 +95,10 @@ function createMainWindow(){
       }
       loadingWindow.hide()
       loadingWindow.close()
-    }, 3000)
-
+    }, 7000) // kludge to try to ensure that the shiny server (pointRProcess) is running before launching the browser
+    // todo: rewrite to use http.head with 200 return to launch mainWindow: see https://github.com/dirkschumacher/r-shiny-electron
   })
+  console.log('mainWindow port='+port)
   mainWindow.loadURL('http://127.0.0.1:' + port)
   //mainWindow.setMenu(null)
   mainWindow.setMenuBarVisibility(false)
@@ -168,7 +169,7 @@ ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
         if (process.platform = MACOS) {
           appRunnerWindow.reload()
         }
-      }, 2000)
+      }, 5000)
 
     }) // endof once dom-ready
     appRunnerWindow.setMenuBarVisibility(false)
@@ -232,9 +233,10 @@ function cleanUpApplication() {
 
 // keep here or put in pkgHelpeR.js?
 const tryStartPointRWebserver = async () =>{
+  
   // pkgR.runCmd returns a Promise
   try { //check that R is installed
-    var res = await pkgR.runCmd(execPath, ['-e', "cat(strsplit( R.version.string, '\\\\s')[[1]][3])"])
+    var res = await pkgR.runCmd(execPath, ['-e', 'cat(strsplit( R.version.string, "\\\\s")[[1]][3])'])
     console.log("R version=" + res); // we will adjust this later   
   } catch (error) { //Rscript not there, exit with prejudice
     dialog.showMessageBox(
@@ -264,6 +266,7 @@ const tryStartPointRWebserver = async () =>{
     }
   }
   // finally spawn pointRProcess
+  console.log('calling startPointProcess')
   startPointProcess()
 }
 
@@ -282,7 +285,9 @@ app.on('ready', async () => {
   loadingWindow.loadURL(`file://${__dirname}/src/splash.html`);
   //loadingWindow.webContents.openDevTools()  //for debugging only
   loadingWindow.once('show', async () => {
+    console.log('waiting for tryStartPointRWebserve')
     await tryStartPointRWebserver()
+    console.log('calling createMainWindow')
     createMainWindow()
   })
   loadingWindow.show()
@@ -308,7 +313,7 @@ app.on('activate', function () {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (mainWindow === null) {
-    createWindow()
+    createMainWindow()
   }
 })
 
