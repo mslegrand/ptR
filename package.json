@@ -55,6 +55,7 @@
   },
   "homepage": "https://github.com/mslegrand/pointRDeployR#readme",
   "dependencies": {
+    "axios": "^0.18.0",
     "electron-version": "^2.0.1",
     "replace-string": "^2.0.0"
   }

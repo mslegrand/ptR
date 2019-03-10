@@ -3,7 +3,9 @@
 
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const path = require('path')
+const axios = require('axios');
 
+//import http from 'axios'
 const portHelper = require('./src/portHelper')
 const pkgR = require('./src/pkgHelpR')
 const url = require('url')
@@ -60,11 +62,19 @@ if(process.platform == WINDOWS){
 //execPath="xxx"
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
+var loadingWindow=null
+var pointRWindow=null
 
 // pointRProcess
 var pointRProcess = null
- 
+
+
+//--------------->> pointR ------------------------------------
 startPointRProcess =()=>{
+  if(!!pointRProcess){ //idiot check
+    console.log('cannot startPointRProcess: already started?')
+    return;
+  }
   pointRProcess = child.spawn(execPath, ["-e",
   "library(shiny);shinyOptions(electron=TRUE);shiny::runApp(system.file('App', package = 'pointR'), port=" + port + ")"
   ])
@@ -81,12 +91,8 @@ startPointRProcess =()=>{
   });
 }
 
-let loadingWindow=null
-let pointRWindow=null
-
-//--------------->> Main------------------------------------
 // note to self : put in  a  pointRWindow.js file???
-function createMainWindow(){
+function createPointRWindow(){
   pointRWindow = new BrowserWindow({
     icon: path.join(__dirname, 'build/icons/icon.icns'),
     webPreferences: {
@@ -107,7 +113,7 @@ function createMainWindow(){
       }
       loadingWindow.hide()
       loadingWindow.close()
-    }, 7000) // kludge to try to ensure that the shiny server (pointRProcess) is running before launching the browser
+    }, 500) // kludge to try to ensure that the shiny server (pointRProcess) is running before launching the browser
     // todo: rewrite to use http.head with 200 return to launch pointRWindow: see https://github.com/dirkschumacher/r-shiny-electron
   })
   console.log('pointRWindow port='+port)
@@ -134,8 +140,8 @@ function createMainWindow(){
     console.log(new Date().toISOString() + '::pointRWindow.closed()')
     cleanUpApplication()
   })
-} //end createMainWindow
-//---------------<< Main------------------------------------
+} //end createPointRWindow
+//---------------<< pointR ------------------------------------
 
 
 
@@ -240,6 +246,11 @@ ipcMain.on('cmdStopAppRunner',
 
 
 //----------------->> startup ---------------------------------------
+
+// checks for r
+// checks for packages
+// installs packages if necessary
+// starts pointRProcess
 const tryStartPointRWebserver = async () =>{
   const rversion  = await pkgR.rVersion()
   if(rversion=='quit'){
@@ -261,7 +272,7 @@ const tryStartPointRWebserver = async () =>{
   // finally spawn pointRProcess
   console.log('calling startPointRProcess')
   startPointRProcess()
-  // insert delay here ???
+  
   return('success')
 }
 
@@ -284,8 +295,10 @@ app.on('ready', async () => {
     console.log('waiting for tryStartPointRWebserve')
     try{
       await tryStartPointRWebserver()
-      console.log('calling createMainWindow')
-      createMainWindow()
+      console.log('calling createPointRWindow')
+      // wait for webServer() here
+      await portHelper.isAlive(port )
+      createPointRWindow()
     } 
     catch( err){
       abortStartUp=err
@@ -308,7 +321,10 @@ app.on('ready', async () => {
         let result="Package installation canceled<br>ABORTING..."
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
         await asyncStartUpErr( "Aborting", "Package Installation Aborted by User")
-      } else {
+      } else if (abortStartUp==='dead'){
+        let result="Cannot estabish pointR-server connection<br>ABORTING..."
+        loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
+        await asyncStartUpErr( "Aborting", "Cannot estabish pointR-server")
         console.log('loading window once '+ abortStartUp)
       }
 
@@ -325,7 +341,7 @@ app.on('activate', function () {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (pointRWindow === null) {
-    createMainWindow()
+    createPointRWindow()
   }
 })
 //-----------------<< startup ---------------------------------------
