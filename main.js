@@ -1,8 +1,9 @@
 // inspired by https://github.com/ksasso/useR_electron_meet_shiny
 //require('electron-reload')(__dirname)
 
-const { app, BrowserWindow, util, dialog, shell } = require('electron')
+const { app, BrowserWindow,  dialog, shell } = require('electron')
 const path = require('path')
+
 const portHelper = require('./src/portHelper')
 const pkgR = require('./src/pkgHelpR')
 const url = require('url')
@@ -15,11 +16,21 @@ const WINDOWS = "win32"
 const LINUX = "linux"
 var confirmExit = false
 var appPath = app.getAppPath()
+
 //var ptRPath = path.join(appPath, "assets/pointR/inst/App")
 //const killStr = "taskkill /im Rscript.exe /f"
 var killStr = ""
 var execPath = "Rscript"
 var rscriptLoadError = false
+
+
+//const util = require('util');
+//const promise_exec = util.promisify(child.exec);
+//const promise_exec = util.promisify(require('child_process').exec);
+
+const util = require('util');
+const exec2 = util.promisify(require('child_process').exec);
+
 
 /*
 if(process.platform == WINDOWS){
@@ -70,8 +81,8 @@ startPointProcess =()=>{
   });
 }
 
-let loadingWindow
-let mainWindow
+let loadingWindow=null
+let mainWindow=null
 
 // note to self : put in  a  mainWindow.js file???
 function createMainWindow(){
@@ -213,6 +224,7 @@ ipcMain.on('cmdStopAppRunner',
     console.log(arg1 + 'arg2')
     if (!!appRunnerWindow) {
       appRunnerWindow.close()
+      appRunnerWindow=null //?
     }
   }
 )
@@ -231,27 +243,24 @@ function cleanUpApplication() {
   }
 }
 
-// keep here or put in pkgHelpeR.js?
-const tryStartPointRWebserver = async () =>{
-  
-  // pkgR.runCmd returns a Promise
-  try { //check that R is installed
-    var res = await pkgR.runCmd(execPath, ['-e', 'cat(strsplit( R.version.string, "\\\\s")[[1]][3])'])
-    console.log("R version=" + res); // we will adjust this later   
-  } catch (error) { //Rscript not there, exit with prejudice
-    dialog.showMessageBox(
-      {
-        message: "Rscript load error :-(\nHave you installed R and pointR?",
-        buttons: ["OK"],
-      },
-      (i) => { cleanUpApplication() }
-    )
-    return null
-  }
-  
 
+const errorBox2= util.promisify(dialog.showErrorBox)
+// keep here or put in pkgHelpeR.js?
+
+
+const asyncStartUpErr = async (title, mssg)=>{
+  console.log('iamhere')
+  const rtv =await errorBox2( title, mssg)         
+}
+
+const tryStartPointRWebserver = async () =>{
+  const rversion  = await pkgR.rVersion()
+  if(rversion=='quit'){
+    console.log('prior to throw')
+    throw 'R-version-error'
+  }
   // check for required packages
-  let missing = await pkgR.missing()
+  const missing = await pkgR.missing()
   console.log('missing.length=', missing.length)
   if (missing.length > 0) { // if some packages are missing , need to install them. 
     var installNow = await pkgR.ask2Install() // query befor installing?
@@ -259,15 +268,13 @@ const tryStartPointRWebserver = async () =>{
       console.log('installNow')
       await pkgR.installMissing(loadingWindow)// run install Rscript
     } else {
-      // exit with grace
-      loadingWindow.hide()
-      loadingWindow.close()
-      cleanUpApplication() // or possibly reject('User package installtion terminated')
+      throw 'cancel-install-error'
     }
   }
   // finally spawn pointRProcess
   console.log('calling startPointProcess')
   startPointProcess()
+  return('success')
 }
 
 app.on('ready', async () => {
@@ -285,10 +292,42 @@ app.on('ready', async () => {
   loadingWindow.loadURL(`file://${__dirname}/src/splash.html`);
   //loadingWindow.webContents.openDevTools()  //for debugging only
   loadingWindow.once('show', async () => {
+    var abortStartUp=null
     console.log('waiting for tryStartPointRWebserve')
-    await tryStartPointRWebserver()
-    console.log('calling createMainWindow')
-    createMainWindow()
+    try{
+      await tryStartPointRWebserver()
+      console.log('calling createMainWindow')
+      createMainWindow()
+    } catch( err){
+      abortStartUp=err
+      console.log('err is:'+err)
+      setTimeout(() => {
+      console.log('and here')
+      loadingWindow.hide()
+      loadingWindow.close()
+      cleanUpApplication()
+      },5000) //die after 5 seconds
+    } 
+    if(!!abortStartUp){
+      if(abortStartUp==='R-version-error'){
+        console.log('founds err is:'+abortStartUp)
+        let result="R was not found!<br>ABORTING..."
+        loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
+        await asyncStartUpErr( "Aborting", "Rscript Load Error Have you installed R?")
+        
+      } else if (abortStartUp==='cancel-install-error'){
+        let result="Package installation canceled<br>ABORTING..."
+        loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
+        await asyncStartUpErr( "Aborting", "Package Installation Aborted by User")
+      } else {
+        console.log('loading window once '+ abortStartUp)
+      }
+
+      //app.quit()
+      //loadingWindow.close()
+      //cleanUpApplication()
+    }
+    
   })
   loadingWindow.show()
 }) 

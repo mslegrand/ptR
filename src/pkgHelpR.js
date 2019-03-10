@@ -8,18 +8,43 @@ const installScript="packageMatrix<-installed.packages(); if(!(\"devtools\" %in%
 
 
  
-exports.runCmd = (cmd, arg) => {
-    return new Promise((resolve, reject) => {
-      var command = child.spawn(cmd, arg)
-      var result = ''
-      command.stdout.on('data', function (data) {
-        result += data.toString()
-      })
-      command.on('close', function (code) {
-        resolve(result)
-      })
-      command.on('error', function (err) { reject(err) })
+// exports.runCmd = (cmd, arg) => {
+//     return new Promise((resolve, reject) => {
+//       var command = child.spawn(cmd, arg)
+//       var result = ''
+//       command.stdout.on('data', function (data) {
+//         result += data.toString()
+//       })
+//       command.on('close', function () {
+//         resolve(result)
+//       })
+//       command.on('error', function (err) { reject(err) })
+//     })
+// }
+
+// exports.execRCmd = (execPath, cmd, errMsg ) => {
+//   return new Promise((resolve, reject) => {
+//     var ecmd = execPath + " -e '"+ cmd + "'"
+//     console.log('ecmd='+ecmd)
+//     var result = child.exec(ecmd, function(err, stdout, stderr){
+//       if(err){    reject(errMsg)}
+//       if(stderr){ reject(errMsg)}
+//       resolve(stdout)
+//     })
+//   })
+// }
+
+exports.rVersion = () => {
+  return new Promise((resolve, reject) => {
+    const  versionScript = 'cat(strsplit( R.version.string, "\\\\s")[[1]][3])'
+    const  ecmd = execPath + " -e '"+ versionScript + "'"
+    console.log('ecmd='+ecmd)
+    const result = child.exec(ecmd, function(err, stdout, stderr){
+      if(err){ resolve('quit')}
+      if(stderr){ resolve('quit')}
+      resolve(stdout)
     })
+  })
 }
   
 //const replaceString = require('replace-string');
@@ -52,7 +77,7 @@ exports.missing =() => {
     })
 }
 
-// todo: move to pkgHelper.js
+
 exports.installMissing =( loadingWindow ) => {
   return new Promise((resolve, reject) => {
     var result = ''
@@ -93,9 +118,7 @@ exports.ask2Install =()=>{
         } else {
             resolve(false)
         }
-        //cleanUpApplication() 
       }
     )
-    //resolve('ok')
   })
 }
