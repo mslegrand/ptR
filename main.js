@@ -64,7 +64,7 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 // pointRProcess
 var pointRProcess = null
  
-startPointProcess =()=>{
+startPointRProcess =()=>{
   pointRProcess = child.spawn(execPath, ["-e",
   "library(shiny);shinyOptions(electron=TRUE);shiny::runApp(system.file('App', package = 'pointR'), port=" + port + ")"
   ])
@@ -82,11 +82,12 @@ startPointProcess =()=>{
 }
 
 let loadingWindow=null
-let mainWindow=null
+let pointRWindow=null
 
-// note to self : put in  a  mainWindow.js file???
+//--------------->> Main------------------------------------
+// note to self : put in  a  pointRWindow.js file???
 function createMainWindow(){
-  mainWindow = new BrowserWindow({
+  pointRWindow = new BrowserWindow({
     icon: path.join(__dirname, 'build/icons/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
@@ -97,65 +98,67 @@ function createMainWindow(){
     height: 600,
     title: "ptR"
   })
-  mainWindow.webContents.once('dom-ready', () => {
-    console.log(new Date().toISOString() + '::mainWindow loaded')
+  pointRWindow.webContents.once('dom-ready', () => {
+    console.log(new Date().toISOString() + '::pointRWindow loaded')
     setTimeout(() => {
-      mainWindow.show()
+      pointRWindow.show()
       if (process.platform = MACOS) {
-        mainWindow.reload()
+        pointRWindow.reload()
       }
       loadingWindow.hide()
       loadingWindow.close()
     }, 7000) // kludge to try to ensure that the shiny server (pointRProcess) is running before launching the browser
-    // todo: rewrite to use http.head with 200 return to launch mainWindow: see https://github.com/dirkschumacher/r-shiny-electron
+    // todo: rewrite to use http.head with 200 return to launch pointRWindow: see https://github.com/dirkschumacher/r-shiny-electron
   })
-  console.log('mainWindow port='+port)
-  mainWindow.loadURL('http://127.0.0.1:' + port)
-  //mainWindow.setMenu(null)
-  mainWindow.setMenuBarVisibility(false)
-  //mainWindow.setAutoHideMenuBar(true)
-  mainWindow.webContents.on('did-finish-load',  ()=> {console.log(new Date().toISOString() + '::did-finish-load')});
-  mainWindow.webContents.on('did-start-load',   ()=> {console.log(new Date().toISOString() + '::did-start-load')});
-  mainWindow.webContents.on('did-stop-load',    ()=> {console.log(new Date().toISOString() + '::did-stop-load')});
-  mainWindow.webContents.on('dom-ready',        ()=> {console.log(new Date().toISOString() + '::dom-ready')});
-  //mainWindow.webContents.openDevTools() // Open the DevTools.
-  mainWindow.on('close', function (event) {
-    console.log("mainWindow::close event")
+  console.log('pointRWindow port='+port)
+  pointRWindow.loadURL('http://127.0.0.1:' + port)
+  //pointRWindow.setMenu(null)
+  pointRWindow.setMenuBarVisibility(false)
+  //pointRWindow.setAutoHideMenuBar(true)
+  pointRWindow.webContents.on('did-finish-load',  ()=> {console.log(new Date().toISOString() + '::did-finish-load')});
+  pointRWindow.webContents.on('did-start-load',   ()=> {console.log(new Date().toISOString() + '::did-start-load')});
+  pointRWindow.webContents.on('did-stop-load',    ()=> {console.log(new Date().toISOString() + '::did-stop-load')});
+  pointRWindow.webContents.on('dom-ready',        ()=> {console.log(new Date().toISOString() + '::dom-ready')});
+  //pointRWindow.webContents.openDevTools() // Open the DevTools.
+  pointRWindow.on('close', function (event) {
+    console.log("pointRWindow::close event")
     console.log("confirmExit=" + JSON.stringify(confirmExit))
     if (!confirmExit) {
       event.preventDefault();
-      console.log("mainWindow:: after e.preventDefault()")
-      mainWindow.webContents.send('appCloseCmd', 'now')
+      console.log("pointRWindow:: after e.preventDefault()")
+      pointRWindow.webContents.send('appCloseCmd', 'now')
     }
   });
   // Emitted when the window is closed.
-  mainWindow.on('closed', function () {
-    console.log(new Date().toISOString() + '::mainWindow.closed()')
+  pointRWindow.on('closed', function () {
+    console.log(new Date().toISOString() + '::pointRWindow.closed()')
     cleanUpApplication()
   })
 } //end createMainWindow
+//---------------<< Main------------------------------------
 
 
 
-// appRunner
+// ------------------->> appRunner------------------------------
 // Note to self: put appRunner in src/appRunner.js file???
-let appRunnerProcess = null
-let appRunnerWindow = null
-function createAppRunnerProcess(appPath2, argTabId) {
+var appRunnerProcess = null
+var appRunnerWindow = null
+
+function createAppRunnerProcess(appPath2, argTabId) { //refers to pointRWindow
   console.log('inside createAppRunnerProcess')
   port2 = portHelper.randomPort()
   console.log("portAppRunner=" + port2)
   let childProcess2 = child.spawn(execPath, ["-e", "shiny::runApp('" + appPath2 + "', port=" + port2 + ")"])
   childProcess2.stdout.on('data', (data) => {
-    mainWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
+    pointRWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
   })
   childProcess2.stderr.on('data', (data) => {
-    mainWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
+    pointRWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
   })
   return childProcess2
 }
 
-function createAppRunnerWindow(port2) { // may need to redo this with a delay screen simililary to mainwindow.
+function createAppRunnerWindow(port2) { // may need to redo this with a delay screen simililary to pointRWindow.
   console.log('inside createAppRunnerWindow')
   let runnerWindow = new BrowserWindow({ webPreferences: { nodeIntegration: false }, show: false, width: 1200, height: 600, title: "appRunner" })
   runnerWindow.webContents.openDevTools()
@@ -163,6 +166,8 @@ function createAppRunnerWindow(port2) { // may need to redo this with a delay sc
   return runnerWindow
 }
 
+
+//------------------>> ipcMain------------------------------------
 // note to self ----- keep all ipcMain in main.js all ipcMain
 const { ipcMain } = require('electron')
 
@@ -185,12 +190,12 @@ ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
     }) // endof once dom-ready
     appRunnerWindow.setMenuBarVisibility(false)
     appRunnerWindow.webContents.on('dom-ready', () => {
-      mainWindow.webContents.send('appRunner', 'loaded', argTabId);
+      pointRWindow.webContents.send('appRunner', 'loaded', argTabId);
     });    // endof ondom-ready  
   } // endof !appRunner
   appRunnerWindow.on('closed', function () {
     console.log(new Date().toISOString() + '::appRunnerWindow.closed()')
-    mainWindow.webContents.send('appRunner', 'unloaded', '');
+    pointRWindow.webContents.send('appRunner', 'unloaded', '');
     appRunnerProcess.kill();
     appRunnerProcess = null
     appRunnerWindow = null
@@ -207,7 +212,7 @@ ipcMain.on('confirmExitMssg', (event, arg) => {
 ipcMain.on('cmdSetTitle',
   (event, arg1, arg2) => {
     console.log(new Date().toISOString() + ':: ipcMain.on cmdSetTitle')
-    mainWindow.setTitle(arg1 + " " + arg2)
+    pointRWindow.setTitle(arg1 + " " + arg2)
   }
 )
 
@@ -228,31 +233,13 @@ ipcMain.on('cmdStopAppRunner',
     }
   }
 )
+//------------------<< ipcMain------------------------------------
 
 
-function cleanUpApplication() {
-  console.log(new Date().toISOString() + '::cleanUpApplication')
-  app.quit()
-  if (pointRProcess) {
-    pointRProcess.kill();
-    if (killStr != "")
-      child.execSync(killStr)
-  }
-  if (appRunnerProcess) {
-    appRunnerProcess.kill();
-  }
-}
 
 
-const errorBox2= util.promisify(dialog.showErrorBox)
-// keep here or put in pkgHelpeR.js?
 
-
-const asyncStartUpErr = async (title, mssg)=>{
-  console.log('iamhere')
-  const rtv =await errorBox2( title, mssg)         
-}
-
+//----------------->> startup ---------------------------------------
 const tryStartPointRWebserver = async () =>{
   const rversion  = await pkgR.rVersion()
   if(rversion=='quit'){
@@ -272,8 +259,9 @@ const tryStartPointRWebserver = async () =>{
     }
   }
   // finally spawn pointRProcess
-  console.log('calling startPointProcess')
-  startPointProcess()
+  console.log('calling startPointRProcess')
+  startPointRProcess()
+  // insert delay here ???
   return('success')
 }
 
@@ -298,7 +286,8 @@ app.on('ready', async () => {
       await tryStartPointRWebserver()
       console.log('calling createMainWindow')
       createMainWindow()
-    } catch( err){
+    } 
+    catch( err){
       abortStartUp=err
       console.log('err is:'+err)
       setTimeout(() => {
@@ -332,28 +321,48 @@ app.on('ready', async () => {
   loadingWindow.show()
 }) 
 
+app.on('activate', function () {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (pointRWindow === null) {
+    createMainWindow()
+  }
+})
+//-----------------<< startup ---------------------------------------
+
+//------------------>> cleanUp------------------------------------
+function cleanUpApplication() {
+  console.log(new Date().toISOString() + '::cleanUpApplication')
+  app.quit()
+  if (pointRProcess) {
+    pointRProcess.kill();
+    if (killStr != "")
+      child.execSync(killStr)
+  }
+  if (appRunnerProcess) {
+    appRunnerProcess.kill();
+  }
+}
+
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
   console.log('EVENT::window-all-closed')
   /*	if( !confirmExit ){
             
             //event.preventDefault();
-             console.log("mainWindow:: after e.preventDefault()")
+             console.log("pointRWindow:: after e.preventDefault()")
             //confirmed=true;
-            mainWindow.webContents.send( 'appCloseCmd', 'now') 
+            pointRWindow.webContents.send( 'appCloseCmd', 'now') 
     }
     */
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   // cleanUpApplication()
 })
+//------------------<< cleanUp------------------------------------
 
-app.on('activate', function () {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (mainWindow === null) {
-    createMainWindow()
-  }
-})
+
+
+
 
 
