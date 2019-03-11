@@ -25,10 +25,8 @@ const axios = require('axios');
 exports.isAlive = async function (port){
   console.log('inside is alive')
   let url = `http://127.0.0.1:${port}`
-  console.log(
-    "url=" + url
-  )
-  for (let i = 0; i <= 10; i++) { // tries ten times, 1/2 sec each, with 1 sec head (15 secs total)
+  console.log("url=" + url)
+  for (let i = 0; i <= 15; i++) { // tries fifteen times, 1/2 sec each, with 1 sec head (20.25 secs total)
     await waitFor(500)
     try {
       const res = await axios.head(url, {timeout: 1000})

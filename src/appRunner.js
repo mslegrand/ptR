@@ -1,15 +1,14 @@
-const MACOS = "darwin"
+const MACOS   = "darwin"
 const WINDOWS = "win32"
-const LINUX = "linux"
+const LINUX   = "linux"
 
-const child = require('child_process')
+const child      = require('child_process')
 const portHelper = require('./portHelper')
-var execPath = "Rscript"
+var execPath     = "Rscript"
 const {  BrowserWindow } = require('electron')
 
-exports.process = null
-exports.window = null
-
+exports.process  = null
+exports.window   = null
 var portAppRunner=null
 
 createAppRunnerProcess=function (appPath2, argTabId, ptRWin) { //refers to pointRWindow

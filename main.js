@@ -1,38 +1,33 @@
-// inspired by https://github.com/ksasso/useR_electron_meet_shiny
+// inspired by both
+// https://github.com/ksasso/useR_electron_meet_shiny
+// https://github.com/dirkschumacher/r-shiny-electron
+
 //require('electron-reload')(__dirname)
 
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const path = require('path')
 const axios = require('axios');
-
-//import http from 'axios'
 const portHelper = require('./src/portHelper')
 const appRunner = require('./src/appRunner')
+const pointRRunner = require('./src/pointRRunner')
 const pkgR = require('./src/pkgHelpR')
-const url = require('url')
-const port = portHelper.randomPort()
-console.log('portMain=' + port)
-//let portAppRunner = appRunner.portAppRunner
 const child = require('child_process')
 const MACOS = "darwin"
 const WINDOWS = "win32"
 const LINUX = "linux"
 var confirmExit = false
-var appPath = app.getAppPath()
+//var appPath = app.getAppPath()
 
-//var ptRPath = path.join(appPath, "assets/pointR/inst/App")
+
 //const killStr = "taskkill /im Rscript.exe /f"
-var killStr = ""
-var execPath = "Rscript"
-var rscriptLoadError = false
-
-
+const killStr = ""
+const execPath = "Rscript"
 //const util = require('util');
 //const promise_exec = util.promisify(child.exec);
 //const promise_exec = util.promisify(require('child_process').exec);
 
 const util = require('util');
-const exec2 = util.promisify(require('child_process').exec);
+//const exec2 = util.promisify(require('child_process').exec);
 
 
 /*
@@ -59,40 +54,16 @@ if(process.platform == WINDOWS){
   throw new Error("not on windows or mac os or linux os?")
 }
 */
-//execPath ="/usr/bin/Rscript";
-//execPath="xxx"
+
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 var loadingWindow=null
+//--------------->> pointR ------------------------------------
+var pointRProcess = pointRRunner.process
+//var pointRWindow  = pointRRunner.window 
 var pointRWindow=null
 
-// pointRProcess
-var pointRProcess = null
-
-
-//--------------->> pointR ------------------------------------
-startPointRProcess =()=>{
-  if(!!pointRProcess){ //idiot check
-    console.log('cannot startPointRProcess: already started?')
-    return;
-  }
-  pointRProcess = child.spawn(execPath, ["-e",
-  "library(shiny);shinyOptions(electron=TRUE);shiny::runApp(system.file('App', package = 'pointR'), port=" + port + ")"
-  ])
-  pointRProcess.stdout.on('data', (data) => {
-    console.log(`stdout:${data}`)
-  })
-  pointRProcess.stderr.on('data', (data) => {
-    console.log('ptR.stderr')
-    console.log(`stderr:${data}`)
-  })
-  pointRProcess.on('error', function (err) { // todo: handle error
-    console.log('failure : ' + err);
-    rscriptLoadError = true
-  });
-}
-
-// note to self : put in  a  pointRWindow.js file???
+//eventually would like to move this into pointRRunner
 function createPointRWindow(){
   pointRWindow = new BrowserWindow({
     icon: path.join(__dirname, 'build/icons/icon.icns'),
@@ -116,15 +87,10 @@ function createPointRWindow(){
       loadingWindow.close()
     }, 500) 
   })
-  console.log('pointRWindow port='+port)
-  pointRWindow.loadURL('http://127.0.0.1:' + port)
+  console.log('pointRWindow port='+ pointRRunner.port)
+  pointRWindow.loadURL('http://127.0.0.1:' + pointRRunner.port)
   //pointRWindow.setMenu(null)
   pointRWindow.setMenuBarVisibility(false)
-  //pointRWindow.setAutoHideMenuBar(true)
-  pointRWindow.webContents.on('did-finish-load',  ()=> {console.log(new Date().toISOString() + '::did-finish-load')});
-  pointRWindow.webContents.on('did-start-load',   ()=> {console.log(new Date().toISOString() + '::did-start-load')});
-  pointRWindow.webContents.on('did-stop-load',    ()=> {console.log(new Date().toISOString() + '::did-stop-load')});
-  pointRWindow.webContents.on('dom-ready',        ()=> {console.log(new Date().toISOString() + '::dom-ready')});
   //pointRWindow.webContents.openDevTools() // Open the DevTools.
   pointRWindow.on('close', function (event) {
     console.log("pointRWindow::close event")
@@ -141,86 +107,27 @@ function createPointRWindow(){
     cleanUpApplication()
   })
 } //end createPointRWindow
+
 //---------------<< pointR ------------------------------------
 
 
 
 // ------------------->> appRunner------------------------------
-// Note to self: put appRunner in src/appRunner.js file???
 var appRunnerProcess = appRunner.process
 var appRunnerWindow  = appRunner.window
-
-
-// function createAppRunnerProcess(appPath2, argTabId) { //refers to pointRWindow
-//   console.log('inside createAppRunnerProcess')
-//   portAppRunner = portHelper.randomPort()
-//   console.log("portAppRunner=" + portAppRunner)
-//   let childProcess2 = child.spawn(execPath, ["-e", "shiny::runApp('" + appPath2 + "', port=" + portAppRunner + ")"])
-//   childProcess2.stdout.on('data', (data) => {
-//     pointRWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
-//   })
-//   childProcess2.stderr.on('data', (data) => {
-//     pointRWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
-//   })
-//   return childProcess2
-// }
-
-// function createAppRunnerWindow(portAppRunner) { // may need to redo this with a delay screen simililary to pointRWindow.
-//   console.log('inside createAppRunnerWindow')
-//   let runnerWindow = new BrowserWindow({ webPreferences: { nodeIntegration: false }, show: false, width: 1200, height: 600, title: "appRunner" })
-//   runnerWindow.webContents.openDevTools()
-//   runnerWindow.loadURL('http://127.0.0.1:' + portAppRunner)
-//   return runnerWindow
-// }
+// -------------------<< appRunner------------------------------
 
 
 //------------------>> ipcMain------------------------------------
 // note to self ----- keep all ipcMain in main.js all ipcMain
 const { ipcMain } = require('electron')
 
-
-// todo: assign portAppRunner when needed: remove when done
-// todo: replace timer in createAppRunnerWindow with wait
-// todo: new async function in appRunner for runner startup
-// ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
-//   console.log('inside electron main ' + argPath + " " + argTabId)
-//   if (!appRunnerProcess) { // create appRunner if not running 
-//     appRunnerProcess = createAppRunnerProcess(argPath, argTabId)
-//   }
-//   // do  wait here ?
-//   if (!appRunnerWindow) {
-//     appRunnerWindow = createAppRunnerWindow(portAppRunner)
-//     appRunnerWindow.webContents.once('dom-ready', () => {
-//       console.log(new Date().toISOString() + '::appRunnerWindow loaded')
-//       setTimeout(() => {
-//         appRunnerWindow.show()
-//         if (process.platform = MACOS) {
-//           appRunnerWindow.reload()
-//         }
-//       }, 5000)
-
-//     }) // endof once dom-ready
-//     appRunnerWindow.setMenuBarVisibility(false)
-//     appRunnerWindow.webContents.on('dom-ready', () => {
-//       pointRWindow.webContents.send('appRunner', 'loaded', argTabId);
-//     });    // endof ondom-ready  
-//   } // endof !appRunner
-//   appRunnerWindow.on('closed', function () {
-//     console.log(new Date().toISOString() + '::appRunnerWindow.closed()')
-//     pointRWindow.webContents.send('appRunner', 'unloaded', '');
-//     appRunnerProcess.kill();
-//     appRunnerProcess = null
-//     appRunnerWindow = null
-//   })
-// })
-
-
-
 ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
   console.log('inside electron main ' + argPath + " " + argTabId)
     try{
       appRunner.launch(argPath, argTabId, pointRWindow)
     } catch(err){
+      asyncStartUpErr('Aborting', 'Failed to start App')
       pointRWindow.webContents.send('appRunner', 'unloaded', '');
       if(!!appRunner.window){
         appRunner.window.close()
@@ -231,39 +138,6 @@ ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
       }
     }
 })
-  
-
-  // if (!appRunnerProcess) { // create appRunner if not running 
-  //   appRunnerProcess = appRunner.createAppRunnerProcess(argPath, argTabId, pointRWindow)
-  // }
-  // // do  wait here ?
-  // if (!appRunnerWindow) {
-  //   appRunnerWindow = appRunner.createAppRunnerWindow()
-  //   appRunnerWindow.webContents.once('dom-ready', () => {
-  //     console.log(new Date().toISOString() + '::appRunnerWindow loaded')
-  //     setTimeout(() => {
-  //       appRunnerWindow.show()
-  //       if (process.platform = MACOS) {
-  //         appRunnerWindow.reload()
-  //       }
-  //     }, 5000)
-
-  //   }) // endof once dom-ready
-  //   appRunnerWindow.setMenuBarVisibility(false)
-  //   appRunnerWindow.webContents.on('dom-ready', () => {
-  //     pointRWindow.webContents.send('appRunner', 'loaded', argTabId);
-  //   });    // endof ondom-ready  
-  // } // endof !appRunner
-  // appRunnerWindow.on('closed', function () {
-  //   console.log(new Date().toISOString() + '::appRunnerWindow.closed()')
-  //   pointRWindow.webContents.send('appRunner', 'unloaded', '');
-  //   appRunnerProcess.kill();
-  //   appRunnerProcess = null
-  //   appRunnerWindow = null
-  // })
-
-//})
-
 
 ipcMain.on('confirmExitMssg', (event, arg) => {
   console.log(new Date().toISOString() + ':: ipcMain.on confirmExit')
@@ -298,14 +172,9 @@ ipcMain.on('cmdStopAppRunner',
 )
 //------------------<< ipcMain------------------------------------
 
-
-
-
-
 //----------------->> startup ---------------------------------------
 const errorBox2= util.promisify(dialog.showErrorBox)
 const asyncStartUpErr = async (title, mssg)=>{
-  console.log('iamhere')
   const rtv =await errorBox2( title, mssg)         
 }
 
@@ -315,27 +184,26 @@ const asyncStartUpErr = async (title, mssg)=>{
 // installs packages if necessary
 // starts pointRProcess
 const tryStartPointRWebserver = async () =>{
+  // check for R
   const rversion  = await pkgR.rVersion()
   if(rversion=='quit'){
-    console.log('prior to throw')
     throw 'R-version-error'
   }
   // check for required packages
-  const missing = await pkgR.missing()
-  console.log('missing.length=', missing.length)
+  const missing = await pkgR.missing() //returns array of missing
+  //console.log('missing.length=', missing.length)
   if (missing.length > 0) { // if some packages are missing , need to install them. 
     var installNow = await pkgR.ask2Install() // query befor installing?
     if (installNow) { // do the installations
-      console.log('installNow')
+      //console.log('installNow')
       await pkgR.installMissing(loadingWindow)// run install Rscript
     } else {
       throw 'cancel-install-error'
     }
   }
   // finally spawn pointRProcess
-  console.log('calling startPointRProcess')
-  startPointRProcess()
-  
+  // console.log('calling startPointRProcess')
+  pointRRunner.startPointRProcess()
   return('success')
 }
 
@@ -350,7 +218,7 @@ app.on('ready', async () => {
     },
     width: 750, height: 400
   })
-  console.log(new Date().toISOString() + '::showing loading');
+  //console.log(new Date().toISOString() + '::showing loading');
   loadingWindow.loadURL(`file://${__dirname}/src/splash.html`);
   //loadingWindow.webContents.openDevTools()  //for debugging only
   loadingWindow.once('show', async () => {
@@ -360,8 +228,10 @@ app.on('ready', async () => {
       await tryStartPointRWebserver()
       console.log('calling createPointRWindow')
       // wait for webServer() here
-      await portHelper.isAlive(port )
-      createPointRWindow()
+      await portHelper.isAlive(pointRRunner.port )
+      createPointRWindow( )
+      
+    
     } 
     catch( err){
       abortStartUp=err
@@ -390,7 +260,6 @@ app.on('ready', async () => {
         await asyncStartUpErr( "Aborting", "Cannot estabish pointR-server")
         console.log('loading window once '+ abortStartUp)
       }
-
       //app.quit()
       //loadingWindow.close()
       //cleanUpApplication()
@@ -404,6 +273,7 @@ app.on('activate', function () {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (pointRWindow === null) {
+    //pointRRunner.
     createPointRWindow()
   }
 })
