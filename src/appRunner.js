@@ -41,8 +41,7 @@ exports.launch = async function(argPath, argTabId, pointRWindow){
   console.log('inside appRunner launch ' + argPath + " " + argTabId)
   if (!exports.process) { // create appRunner if not running 
     exports.process = createAppRunnerProcess(argPath, argTabId, pointRWindow)
-  }
-  //wait here
+  }  //wait here
   var alive = await( portHelper.isAlive(portAppRunner) )
   if (!exports.window) {
     exports.window = createAppRunnerWindow()
@@ -53,7 +52,7 @@ exports.launch = async function(argPath, argTabId, pointRWindow){
         if (process.platform = MACOS) {
           exports.window.reload()
         }
-      }, 5000)
+      }, 500)
     }) // endof once dom-ready
     exports.window.setMenuBarVisibility(false)
     exports.window.webContents.on('dom-ready', () => {
