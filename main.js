@@ -7,11 +7,12 @@ const axios = require('axios');
 
 //import http from 'axios'
 const portHelper = require('./src/portHelper')
+const appRunner = require('./src/appRunner')
 const pkgR = require('./src/pkgHelpR')
 const url = require('url')
 const port = portHelper.randomPort()
 console.log('portMain=' + port)
-let port2 = null
+//let portAppRunner = appRunner.portAppRunner
 const child = require('child_process')
 const MACOS = "darwin"
 const WINDOWS = "win32"
@@ -113,8 +114,7 @@ function createPointRWindow(){
       }
       loadingWindow.hide()
       loadingWindow.close()
-    }, 500) // kludge to try to ensure that the shiny server (pointRProcess) is running before launching the browser
-    // todo: rewrite to use http.head with 200 return to launch pointRWindow: see https://github.com/dirkschumacher/r-shiny-electron
+    }, 500) 
   })
   console.log('pointRWindow port='+port)
   pointRWindow.loadURL('http://127.0.0.1:' + port)
@@ -147,66 +147,123 @@ function createPointRWindow(){
 
 // ------------------->> appRunner------------------------------
 // Note to self: put appRunner in src/appRunner.js file???
-var appRunnerProcess = null
-var appRunnerWindow = null
+var appRunnerProcess = appRunner.process
+var appRunnerWindow  = appRunner.window
 
-function createAppRunnerProcess(appPath2, argTabId) { //refers to pointRWindow
-  console.log('inside createAppRunnerProcess')
-  port2 = portHelper.randomPort()
-  console.log("portAppRunner=" + port2)
-  let childProcess2 = child.spawn(execPath, ["-e", "shiny::runApp('" + appPath2 + "', port=" + port2 + ")"])
-  childProcess2.stdout.on('data', (data) => {
-    pointRWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
-  })
-  childProcess2.stderr.on('data', (data) => {
-    pointRWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
-  })
-  return childProcess2
-}
 
-function createAppRunnerWindow(port2) { // may need to redo this with a delay screen simililary to pointRWindow.
-  console.log('inside createAppRunnerWindow')
-  let runnerWindow = new BrowserWindow({ webPreferences: { nodeIntegration: false }, show: false, width: 1200, height: 600, title: "appRunner" })
-  runnerWindow.webContents.openDevTools()
-  runnerWindow.loadURL('http://127.0.0.1:' + port2)
-  return runnerWindow
-}
+// function createAppRunnerProcess(appPath2, argTabId) { //refers to pointRWindow
+//   console.log('inside createAppRunnerProcess')
+//   portAppRunner = portHelper.randomPort()
+//   console.log("portAppRunner=" + portAppRunner)
+//   let childProcess2 = child.spawn(execPath, ["-e", "shiny::runApp('" + appPath2 + "', port=" + portAppRunner + ")"])
+//   childProcess2.stdout.on('data', (data) => {
+//     pointRWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
+//   })
+//   childProcess2.stderr.on('data', (data) => {
+//     pointRWindow.webContents.send('appRunnerLog', `${data}`, argTabId)
+//   })
+//   return childProcess2
+// }
+
+// function createAppRunnerWindow(portAppRunner) { // may need to redo this with a delay screen simililary to pointRWindow.
+//   console.log('inside createAppRunnerWindow')
+//   let runnerWindow = new BrowserWindow({ webPreferences: { nodeIntegration: false }, show: false, width: 1200, height: 600, title: "appRunner" })
+//   runnerWindow.webContents.openDevTools()
+//   runnerWindow.loadURL('http://127.0.0.1:' + portAppRunner)
+//   return runnerWindow
+// }
 
 
 //------------------>> ipcMain------------------------------------
 // note to self ----- keep all ipcMain in main.js all ipcMain
 const { ipcMain } = require('electron')
 
+
+// todo: assign portAppRunner when needed: remove when done
+// todo: replace timer in createAppRunnerWindow with wait
+// todo: new async function in appRunner for runner startup
+// ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
+//   console.log('inside electron main ' + argPath + " " + argTabId)
+//   if (!appRunnerProcess) { // create appRunner if not running 
+//     appRunnerProcess = createAppRunnerProcess(argPath, argTabId)
+//   }
+//   // do  wait here ?
+//   if (!appRunnerWindow) {
+//     appRunnerWindow = createAppRunnerWindow(portAppRunner)
+//     appRunnerWindow.webContents.once('dom-ready', () => {
+//       console.log(new Date().toISOString() + '::appRunnerWindow loaded')
+//       setTimeout(() => {
+//         appRunnerWindow.show()
+//         if (process.platform = MACOS) {
+//           appRunnerWindow.reload()
+//         }
+//       }, 5000)
+
+//     }) // endof once dom-ready
+//     appRunnerWindow.setMenuBarVisibility(false)
+//     appRunnerWindow.webContents.on('dom-ready', () => {
+//       pointRWindow.webContents.send('appRunner', 'loaded', argTabId);
+//     });    // endof ondom-ready  
+//   } // endof !appRunner
+//   appRunnerWindow.on('closed', function () {
+//     console.log(new Date().toISOString() + '::appRunnerWindow.closed()')
+//     pointRWindow.webContents.send('appRunner', 'unloaded', '');
+//     appRunnerProcess.kill();
+//     appRunnerProcess = null
+//     appRunnerWindow = null
+//   })
+// })
+
+
+
 ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
   console.log('inside electron main ' + argPath + " " + argTabId)
-  if (!appRunnerProcess) { // create appRunner if not running 
-    appRunnerProcess = createAppRunnerProcess(argPath, argTabId)
-  }
-  if (!appRunnerWindow) {
-    appRunnerWindow = createAppRunnerWindow(port2)
-    appRunnerWindow.webContents.once('dom-ready', () => {
-      console.log(new Date().toISOString() + '::appRunnerWindow loaded')
-      setTimeout(() => {
-        appRunnerWindow.show()
-        if (process.platform = MACOS) {
-          appRunnerWindow.reload()
-        }
-      }, 5000)
-
-    }) // endof once dom-ready
-    appRunnerWindow.setMenuBarVisibility(false)
-    appRunnerWindow.webContents.on('dom-ready', () => {
-      pointRWindow.webContents.send('appRunner', 'loaded', argTabId);
-    });    // endof ondom-ready  
-  } // endof !appRunner
-  appRunnerWindow.on('closed', function () {
-    console.log(new Date().toISOString() + '::appRunnerWindow.closed()')
-    pointRWindow.webContents.send('appRunner', 'unloaded', '');
-    appRunnerProcess.kill();
-    appRunnerProcess = null
-    appRunnerWindow = null
-  })
+    try{
+      appRunner.launch(argPath, argTabId, pointRWindow)
+    } catch(err){
+      pointRWindow.webContents.send('appRunner', 'unloaded', '');
+      if(!!appRunner.window){
+        appRunner.window.close()
+      }
+      if(!!appRunner.process){
+        appRunner.process.kill()
+        appRunner.process=null
+      }
+    }
 })
+  
+
+  // if (!appRunnerProcess) { // create appRunner if not running 
+  //   appRunnerProcess = appRunner.createAppRunnerProcess(argPath, argTabId, pointRWindow)
+  // }
+  // // do  wait here ?
+  // if (!appRunnerWindow) {
+  //   appRunnerWindow = appRunner.createAppRunnerWindow()
+  //   appRunnerWindow.webContents.once('dom-ready', () => {
+  //     console.log(new Date().toISOString() + '::appRunnerWindow loaded')
+  //     setTimeout(() => {
+  //       appRunnerWindow.show()
+  //       if (process.platform = MACOS) {
+  //         appRunnerWindow.reload()
+  //       }
+  //     }, 5000)
+
+  //   }) // endof once dom-ready
+  //   appRunnerWindow.setMenuBarVisibility(false)
+  //   appRunnerWindow.webContents.on('dom-ready', () => {
+  //     pointRWindow.webContents.send('appRunner', 'loaded', argTabId);
+  //   });    // endof ondom-ready  
+  // } // endof !appRunner
+  // appRunnerWindow.on('closed', function () {
+  //   console.log(new Date().toISOString() + '::appRunnerWindow.closed()')
+  //   pointRWindow.webContents.send('appRunner', 'unloaded', '');
+  //   appRunnerProcess.kill();
+  //   appRunnerProcess = null
+  //   appRunnerWindow = null
+  // })
+
+//})
+
 
 ipcMain.on('confirmExitMssg', (event, arg) => {
   console.log(new Date().toISOString() + ':: ipcMain.on confirmExit')
@@ -246,6 +303,12 @@ ipcMain.on('cmdStopAppRunner',
 
 
 //----------------->> startup ---------------------------------------
+const errorBox2= util.promisify(dialog.showErrorBox)
+const asyncStartUpErr = async (title, mssg)=>{
+  console.log('iamhere')
+  const rtv =await errorBox2( title, mssg)         
+}
+
 
 // checks for r
 // checks for packages
