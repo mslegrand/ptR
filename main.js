@@ -157,7 +157,8 @@ const asyncStartUpErr = async (title, mssg)=>{
 }
 
 const tryStartPointRWebserver = async () =>{
-  // check for R
+  // check for R  
+  console.log('-->> tryStartPointRWebserver')
   const rversion  = await pkgR.rVersion()
   if(rversion=='quit'){
     throw 'R-version-error'
@@ -197,11 +198,17 @@ app.on('ready', async () => {
     var abortStartUp=null
     //console.log('waiting for tryStartPointRWebserve')
     try{
+      console.log('--->>loading once try')
       execPath= await getRscriptPath()
-      await async function(execPath){
-        pkgHelpR.execPath=execPath
+      
+      await async function(){
+        console.log("00 execPath="+ execPath)
+        pkgR.execPath=execPath
         appRunner.execPath=execPath
-      }
+        pointRRunner.execPath=execPath
+        console.log('01 pkgR.execPath='+ pkgR.execPath)
+      }()
+
       await tryStartPointRWebserver()
       //console.log('calling createPointRWindow')
       // wait for webServer() here

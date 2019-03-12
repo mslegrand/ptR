@@ -5,10 +5,11 @@ const LINUX   = "linux"
 
 const child      = require('child_process')
 const portHelper = require('./portHelper')
-var execPath     = "Rscript"
+//var execPath     = "Rscript"
 //const {  BrowserWindow } = require('electron')
 const path = require('path')
 
+exports.execPath=null
 exports.port=null
 exports.process  = null
 //exports.window   = null
@@ -20,7 +21,8 @@ exports.startPointRProcess =()=>{
   }
   exports.port = portHelper.randomPort()
   console.log('portMain=' + exports.port)
-  exports.process = child.spawn(execPath, ["-e",
+  console.log('execPath=' + exports.execPath)
+  exports.process = child.spawn(exports.execPath, ["-e",
   "library(shiny);shinyOptions(electron=TRUE);shiny::runApp(system.file('App', package = 'pointR'), port=" + exports.port + ")"
   ])
   exports.process.stdout.on('data', (data) => {

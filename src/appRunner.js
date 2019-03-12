@@ -17,7 +17,7 @@ createAppRunnerProcess=function (appPath2, argTabId, ptRWin) { //refers to point
   console.log('inside createAppRunnerProcess')
   portAppRunner = portHelper.randomPort()
   console.log("portAppRunner=" + portAppRunner)
-  let childProcess2 = child.spawn(execPath, ["-e", "shiny::runApp('" + appPath2 + "', port=" + portAppRunner + ")"])
+  let childProcess2 = child.spawn(exports.execPath, ["-e", "shiny::runApp('" + appPath2 + "', port=" + portAppRunner + ")"])
   childProcess2.stdout.on('data', (data) => {
     ptRWin.webContents.send('appRunnerLog', `${data}`, argTabId)
   })
