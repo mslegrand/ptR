@@ -1,10 +1,12 @@
-const MACOS   = "darwin"
-const WINDOWS = "win32"
-const LINUX   = "linux"
+// const MACOS   = "darwin"
+// const WINDOWS = "win32"
+// const LINUX   = "linux"
 
 const child      = require('child_process')
 const portHelper = require('./portHelper')
-var execPath     = "Rscript"
+
+exports.execPath=""
+
 const {  BrowserWindow } = require('electron')
 
 exports.process  = null
