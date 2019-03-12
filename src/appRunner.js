@@ -1,6 +1,6 @@
-// const MACOS   = "darwin"
-// const WINDOWS = "win32"
-// const LINUX   = "linux"
+ const MACOS   = "darwin"
+ const WINDOWS = "win32"
+ const LINUX   = "linux"
 
 const child      = require('child_process')
 const portHelper = require('./portHelper')

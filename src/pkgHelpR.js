@@ -14,7 +14,7 @@ const installScript="packageMatrix<-installed.packages(); if(!(\"devtools\" %in%
 
 exports.rVersion = function(){
   return new Promise((resolve, reject) => {
-    const  versionScript = 'cat(strsplit( R.version.string, "\\\\s")[[1]][3])'
+    const  versionScript = 'cat(strsplit( R.version.string, " ")[[1]][3])'
     const  ecmd = execPath + " -e '"+ versionScript + "'"
     console.log('ecmd='+ecmd)
 
