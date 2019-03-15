@@ -37,7 +37,7 @@ const store = new Store({
   configName: 'user-preferences',
   defaults: {
     // 800x600 is the default size of our window
-    windowBounds: { width: 1600, height: 800 },
+    windowBounds: { width: 800, height: 600 },
     rscriptPath: defaultRscriptPath()
   }
 });
@@ -97,7 +97,7 @@ function createPointRWindow(){
   pointRWindow.loadURL('http://127.0.0.1:' + pointRRunner.port)
   //pointRWindow.setMenu(null)
   pointRWindow.setMenuBarVisibility(false)
-  //pointRWindow.webContents.openDevTools() // Open the DevTools.
+  //pointRWindow.webContents.openDevTools() // Open the DevTools for debugging
   pointRWindow.on('close', function (event) {
     console.log("pointRWindow::close event")
     console.log("confirmExit=" + JSON.stringify(confirmExit))
