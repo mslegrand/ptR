@@ -16,7 +16,7 @@ exports.ask4Rscript =()=>{
             },
             (i) => { 
                 if(i==0){
-                    const options={title: 'Navigate and select Rscript', buttonLabel: 'Select'}
+                    const options={title: 'Navigate and select Rscript', buttonLabel: 'Select', showHiddenFiles:true, createDirectory:false}
                     dialog.showOpenDialog(null, options, (filePaths)=>{
                         // check that selected is Rscipte
                         // save file here
