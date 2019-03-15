@@ -295,14 +295,17 @@ app.on('activate', function () {
 function cleanUpApplication() {
   console.log(new Date().toISOString() + '::cleanUpApplication')
   app.quit()
-  if (pointRProcess) {
+  if (!!appRunnerProcess) {
+    appRunnerProcess.kill();
+    appRunnerProcess=null
+  }
+  if (!!pointRProcess) {
     pointRProcess.kill();
+
     if (killStr != "")
       child.execSync(killStr)
   }
-  if (appRunnerProcess) {
-    appRunnerProcess.kill();
-  }
+  
 }
 
 // Quit when all windows are closed.
