@@ -4,6 +4,7 @@
 //require('electron-reload')(__dirname)
 
 const { app, BrowserWindow,  dialog, shell } = require('electron')
+const Store=require('./src/store.js')
 const path = require('path')
 //const axios = require('axios');
 const portHelper = require('./src/portHelper')
@@ -19,17 +20,42 @@ var confirmExit = false
 //const killStr = "taskkill /im Rscript.exe /f"
 const killStr = ""
 
+
+function defaultRscriptPath(){
+  if (process.platform===LINUX){
+      return('/usr/bin/Rscipt')
+  } else if(process.platform==MACOS){
+      return('/usr/local/bin/Rscript')
+  } else {
+     return('C:\\program Files\\R\\Rscript.exe') //or something????
+  }
+}
+
+const ExecPath=require("./src/execPath")
+const store = new Store({
+  // We'll call our data file 'user-preferences'
+  configName: 'user-preferences',
+  defaults: {
+    // 800x600 is the default size of our window
+    windowBounds: { width: 1600, height: 800 },
+    rscriptPath: defaultRscriptPath()
+  }
+});
+
+ExecPath.store=store
+
+
 //const util = require('util');
 //const promise_exec = util.promisify(child.exec);
 //const promise_exec = util.promisify(require('child_process').exec);
 
-const getRscriptPath =  require("./src/execPath").getRscriptPath
+
+const getRscriptPath =  require("./src/execPath").getRscriptPath //debugging only
 getRscriptPath().then( v =>
 console.log("getRscriptPath=" + v )
 )
 
 const util = require('util');
-
 
 
 //const exec2 = util.promisify(require('child_process').exec);
@@ -44,6 +70,7 @@ var pointRWindow=null
 
 //eventually would like to move this into pointRRunner
 function createPointRWindow(){
+  let {width, height} = store.get('windowBounds')
   pointRWindow = new BrowserWindow({
     icon: path.join(__dirname, 'build/icons/icon.icns'),
     webPreferences: {
@@ -51,8 +78,8 @@ function createPointRWindow(){
       preload: __dirname + "/src/preloadPtr.js"   //"preload.js"
     },
     show: false,
-    width: 1200,
-    height: 600,
+    width: width,
+    height: height,
     title: "ptR"
   })
   pointRWindow.webContents.once('dom-ready', () => {
@@ -80,6 +107,10 @@ function createPointRWindow(){
       pointRWindow.webContents.send('appCloseCmd', 'now')
     }
   });
+  pointRWindow.on('resize', ()=>{
+    let {width, height}=pointRWindow.getBounds();
+    store.set('windowBounds', {width, height})
+  })
   // Emitted when the window is closed.
   pointRWindow.on('closed', function () {
     console.log(new Date().toISOString() + '::pointRWindow.closed()')
@@ -221,10 +252,10 @@ app.on('ready', async () => {
       abortStartUp=err
       console.log('err is:'+err)
       setTimeout(() => {
-      console.log('and here')
-      loadingWindow.hide()
-      loadingWindow.close()
-      cleanUpApplication()
+        console.log('and here')
+        loadingWindow.hide()
+        loadingWindow.close()
+        cleanUpApplication()
       },5000) //die after 5 seconds
     } 
     if(!!abortStartUp){
