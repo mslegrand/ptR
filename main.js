@@ -121,12 +121,6 @@ function createPointRWindow(){
 //---------------<< pointR ------------------------------------
 
 
-// ------------------->> appRunner------------------------------
-var appRunnerProcess = appRunner.process
-var appRunnerWindow  = appRunner.window
-// -------------------<< appRunner------------------------------
-
-
 //------------------>> ipcMain------------------------------------
 // note to self ----- probably want to keep all ipcMain in main.js 
 const { ipcMain } = require('electron')
@@ -173,9 +167,12 @@ ipcMain.on('cmdStopAppRunner',
   (event, arg1, arg2) => {
     console.log(new Date().toISOString() + ':: ipcMain.on cmdStopAppRunner')
     console.log(arg1 + 'arg2')
-    if (!!appRunnerWindow) {
-      appRunnerWindow.close()
-      appRunnerWindow=null //?
+    if (!!appRunner.window) {
+      console.log('!!cmdStopAppRunner==true')
+      appRunner.window.close()
+      appRunner.window=null //?
+    } else{
+      console.log('!!cmdStopAppRunner==false')
     }
   }
 )
@@ -295,12 +292,13 @@ app.on('activate', function () {
 function cleanUpApplication() {
   console.log(new Date().toISOString() + '::cleanUpApplication')
   app.quit()
-  if (!!appRunnerProcess) {
-    appRunnerProcess.kill();
-    appRunnerProcess=null
+  if (!!appRunner.process) {
+    appRunner.process.kill();
+    appRunner.process=null
   }
   if (!!pointRProcess) {
     pointRProcess.kill();
+    pointRProcess=null;
 
     if (killStr != "")
       child.execSync(killStr)
