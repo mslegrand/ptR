@@ -6,10 +6,14 @@
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
+const remote = require('electron').remote; // for find in page
+//const searchInPage = require('electron-in-page-search').default;
+//const inPageSearch = searchInPage(remote.getCurrentWebContents());
 //const axios = require('axios');
 const portHelper = require('./src/portHelper')
 const appRunner = require('./src/appRunner')
 const pointRRunner = require('./src/pointRRunner')
+
 const pkgR = require('./src/pkgHelpR')
 const child = require('child_process')
 const MACOS = "darwin"
@@ -65,8 +69,8 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 var loadingWindow=null
 //--------------->> pointR ------------------------------------
 var pointRProcess = pointRRunner.process
-//var pointRWindow  = pointRRunner.window 
 var pointRWindow=null
+var userGuideWindow=null
 
 //eventually would like to move this into pointRRunner
 function createPointRWindow(){
@@ -163,6 +167,28 @@ ipcMain.on('cmdOpenLink',
   }
 )
 
+ipcMain.on('cmdOpenWindow',
+  (event, arg1, arg2) => {
+    console.log(new Date().toISOString() + ':: ipcMain.on cmdOpenWindow')
+    if(!userGuideWindow && arg1=='svgRUserGuide'){
+      userGuideWindow = new BrowserWindow({
+        width:1000, height:600, show: false,
+        title: "svgR User Guide",
+        webPreferences: {
+          nodeIntegration: false,
+          preload: __dirname + "/src/preloadUserGuide.js"
+        }
+      })
+      userGuideWindow.loadURL(path.join('file:///',__dirname, 'assets', 'UserGuide.html'  ))
+      //userGuideWindow.loadFile(path.join(__dirname, 'assets', 'UserGuide.html'  ))
+      userGuideWindow.setMenuBarVisibility(false)
+      //userGuideWindow.webContents.openDevTools()
+      userGuideWindow.once( 'ready-to-show', ()=> {userGuideWindow.show()})
+      userGuideWindow.on('closed', ()=>{userGuideWindow=null})      
+    }
+  }
+)
+
 ipcMain.on('cmdStopAppRunner',
   (event, arg1, arg2) => {
     console.log(new Date().toISOString() + ':: ipcMain.on cmdStopAppRunner')
@@ -217,7 +243,7 @@ app.on('ready', async () => {
       nodeIntegration: false,
       preload: __dirname + "/src/preloadLoader.js"   //"preload.js"
     },
-    width: 750, height: 400
+    width: 750, height: 400, title: 'svgR User Guide'
   })
   //console.log(new Date().toISOString() + '::showing loading');
   loadingWindow.loadURL(`file://${__dirname}/src/splash.html`);

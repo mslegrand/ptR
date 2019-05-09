@@ -20,7 +20,7 @@
         "deb"
       ],
       "category": "graphics",
-      "icon": "build/icons/icons.icns",
+      "icon": "build/icons/ptrss.icns",
       "forceCodeSigning": false
     },
     "mac": {
@@ -52,7 +52,7 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "electron": "^4.0.7",
-    "electron-builder": "^20.38.5"
+    "electron-builder": "^20.40.2"
   },
   "bugs": {
     "url": "https://github.com/mslegrand/pointRDeployR/issues"
@@ -60,6 +60,7 @@
   "homepage": "https://github.com/mslegrand/pointRDeployR#readme",
   "dependencies": {
     "axios": "^0.18.0",
+    "electron-find": "^1.0.5",
     "electron-version": "^2.0.1",
     "replace-string": "^2.0.0"
   }
