@@ -230,7 +230,10 @@ const tryStartPointRWebserver = async () =>{
     }
   }
   // finally spawn pointRProcess
-  pointRRunner.startPointRProcess()
+  //var path2lib = path.join(__dirname,  'assets', 'library')
+  var path2lib = path.join(path.dirname(app.getAppPath()), 'library')
+  console.log('path2lib='+path2lib)
+  pointRRunner.startPointRProcess(path2lib)
   return('success')
 }
 

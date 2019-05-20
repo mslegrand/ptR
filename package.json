@@ -14,24 +14,40 @@
   },
   "build": {
     "appId": "com.electron.pointr",
+    "files": [
+      "main.js",
+      "index.html",
+      "assets/**/*",
+      "src/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../library/",
+        "to": "library",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
       "category": "graphics",
-      "icon": "build/icons/ptrss.icns",
+      "icon": "build/icons/mac/icon.icns",
       "forceCodeSigning": false
     },
     "mac": {
       "target": "dmg",
       "category": "graphics",
-      "icon": "build/icons/icon.icns",
+      "icon": "build/icons/mac/icon.icns",
       "forceCodeSigning": false
     },
     "win": {
       "target": "nsis",
-      "icon": "build/icons/pointRIcon_256x256.png",
+      "icon": "build/icons/mac/icon.ico",
       "forceCodeSigning": false
     }
   },

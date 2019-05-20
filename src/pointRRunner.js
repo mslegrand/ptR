@@ -5,6 +5,8 @@ const LINUX   = "linux"
 
 const child      = require('child_process')
 const portHelper = require('./portHelper')
+const fs         = require('fs')  
+const os         = require('os')     
 //var execPath     = "Rscript"
 //const {  BrowserWindow } = require('electron')
 const path = require('path')
@@ -14,23 +16,113 @@ exports.port=null
 exports.process  = null
 //exports.window   = null
 
-exports.startPointRProcess =()=>{
+var getPtRVersion=function (path2lib){
+  var filePath=path.join(  path2lib, 'pointR', 'DESCRIPTION');
+  console.log('DESCRIPTION filePath='+ filePath)
+	var data = fs.readFileSync(filePath);
+  var fileContents=data.toString();
+  console.log('DESCRIPTION fileContents')
+  console.log(JSON.stringify(fileContents))
+	var rx = /\nVersion:(.*)\n/m;
+  //var ptR_version=fileContents.match(rx) || ['Infinity']
+  var ptR_version=rx.exec(fileContents);
+  ptR_version= "'"+ptR_version[1]+"'";
+  console.log("ptR_version" + JSON.stringify(ptR_version))
+	return ptR_version;
+}
+
+exports.startPointRProcess =(path2lib)=>{
   if(!!exports.process){ //idiot check
     console.log('cannot startPointRProcess: already started?')
     return;
   }
   exports.port = portHelper.randomPort()
   console.log('portMain=' + exports.port)
+  console.log('path2lib=' + JSON.stringify(path2lib));
+  var ptR_Version = getPtRVersion (path2lib);
+  console.log('pathptR_Version=' + JSON.stringify(ptR_Version));
+  var erLib = path2lib; //' //path.join(app.getAppPath(), 'assets', 'library');
+  var libShinyCmd     = "library(shiny);library(pointR);";
+  var optionsCmd  = "shiny::shinyOptions(electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + os.homedir() + "');";
+  var libPathCmd="";
+  var path2pointR="";
+  console.log('hello')
+  if( fs.existsSync(erLib) ){
+    console.log('electron internal R lib exists')
+    libPathCmd  = ".libPaths(c(Sys.getenv('E_LIB'), .libPaths()));"
+    path2pointR=  path.join(erLib, 'pointR','App') 
+    
+    //path2pointR=  path.join('.', 'assets', 'library', 'pointR', 'App'); //path.join(erLib, 'pointR','App') 
+  } else {
+    console.log('electron internal R lib does not exist')
+    libPathCmd=""
+    path2pointR = "system.file('App', package = 'pointR')"
+  } 
+  console.log('there')
+  var hbCmd =  "host = '127.0.0.1', launch.browser = FALSE," 
+  //var runPtrCmd = "shiny::runApp(Sys.getenv('E_PTR_PATH'), " + hbCmd +"  port = as.integer(Sys.getenv('E_PTR_PORT')) )"
+  var runPtrCmd = "shiny::runApp(system.file('App', package = 'pointR'), " + hbCmd +"  port = as.integer(Sys.getenv('E_PTR_PORT')) )"
+  var processCmd  = libPathCmd + libShinyCmd + optionsCmd + runPtrCmd;
+
+  //console.log('execPath=' + exports.execPath)
+
+  /* //alternatively
+  fs.access(erLib, (err) => {
+    if (err) {
+        console.log('does not exist')
+      } else {
+        console.log('exists')
+      }
+  })
+  */
+
+  
+
+
+
+  
+  //".libPaths(c('" + path2lib +"', .libPaths() ));";
+  //var libPathCmd  = ".libPaths(); .libPaths('" + libPath +"');";
+  
+  
+  //var runAppCmd   = "shiny::runApp(system.file('App', package = 'pointR'), port=" + exports.port + ")";
+  //var path2pointR = path2lib + "/pointR/App/";
+  //console.log( path2pointR);
+  //var runAppCmd   = "shiny::runApp('" + path2pointR +"', port=" + exports.port + ")";
+  //var runAppCmd   = "shiny::runApp(system.file('App', package = 'pointR'), port=" + exports.port + ")";
+  
+  
+  //var processCmd  =  libsCmd + optionsCmd + runAppCmd;
+  //console.log(libPathCmd)
   console.log('execPath=' + exports.execPath)
-  exports.process = child.spawn(exports.execPath, ["-e",
-  "library(shiny);shinyOptions(electron=TRUE);shiny::runApp(system.file('App', package = 'pointR'), port=" + exports.port + ")"
-  ])
+  console.log("\nrunPtrCmd")
+  console.log(runPtrCmd)
+  console.log("\nprocessCmd")
+  console.log(processCmd)
+  console.log("\npath2pointR")
+  console.log(path2pointR)
+  console.log("\nerLib")
+  console.log(erLib)
+  console.log("\nexports.port")
+  console.log(exports.port)
+  exports.process = child.spawn(exports.execPath, ["-e", processCmd], {
+    env: {
+      'E_PTR_PATH':  path2pointR,
+      'E_PTR_PORT':  exports.port,
+      'E_LIB': erLib,
+      'HOME': os.homedir()
+    }
+  }
+  );
+  //exports.process = child.spawn(exports.execPath, ["-e",
+  //"library(shiny);shinyOptions(electron=TRUE);shiny::runApp(system.file('App', package = 'pointR'), port=" + exports.port + ")"
+  //])
   exports.process.stdout.on('data', (data) => {
     console.log(`stdout:${data}`)
   })
   exports.process.stderr.on('data', (data) => {
     console.log('ptR.stderr')
-    console.log(`stderr:${data}`)
+    console.log(`ouch stderr:${data}`)
   })
   exports.process.on('error', function (err) { // todo: handle error
     console.log('failure : ' + err);
@@ -39,53 +131,3 @@ exports.startPointRProcess =()=>{
   return exports.process
 }
 
-// exports.createPointRWindow = function(loadingWindow, cleanUpApplication, exitConfirmed) {
-//   exports.window = new BrowserWindow({
-//     icon: path.join(__dirname, '../build/icons/icon.icns'),
-//     webPreferences: {
-//       nodeIntegration: false ,
-//       preload: __dirname + "preloadPtr.js"   //"preload.js"
-//     },
-//     show: false,
-//     width: 1200,
-//     height: 600,
-//     title: "ptR"
-//   })
-//   exports.window.webContents.once('dom-ready', () => {
-//     console.log(new Date().toISOString() + '::window loaded')
-//     setTimeout(() => {
-//       exports.window.show()
-//       if (process.platform = MACOS) {
-//         exports.window.reload()
-//       }
-//       loadingWindow.hide()
-//       loadingWindow.close()
-//     }, 500) 
-//   })
-//   console.log('window port='+exports.port)
-//   exports.window.loadURL('http://127.0.0.1:' + exports.port)
-//   //window.setMenu(null)
-//   exports.window.setMenuBarVisibility(false)
-//   //window.setAutoHideMenuBar(true)
-//   // exports.window.webContents.on('did-finish-load',  ()=> {console.log(new Date().toISOString() + '::did-finish-load')});
-//   // exports.window.webContents.on('did-start-load',   ()=> {console.log(new Date().toISOString() + '::did-start-load')});
-//   // exports.window.webContents.on('did-stop-load',    ()=> {console.log(new Date().toISOString() + '::did-stop-load')});
-//   // exports.window.webContents.on('dom-ready',        ()=> {console.log(new Date().toISOString() + '::dom-ready')});
-//   //window.webContents.openDevTools() // Open the DevTools.
-//   // exports.window.on('close', function (event) {
-//   //   console.log("window::close event")
-//   //   console.log("confirmExit=" + JSON.stringify(exitConfirmed()))
-//   //   if (!exitConfirmed()) {
-//   //     event.preventDefault();
-//   //     console.log("window:: after e.preventDefault()")
-//   //     exports.window.webContents.send('appCloseCmd', 'now')
-//   //   }
-//   // });
-//   // // Emitted when the window is closed.
-//   // exports.window.on('closed', function () {
-//   //   console.log(new Date().toISOString() + '::window.closed()')
-//   //   cleanUpApplication()
-//   // })
-//   //exports.window=window
-//   return exports.window
-// } //end createPointRWindow
