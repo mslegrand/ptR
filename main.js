@@ -7,8 +7,6 @@ const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
 const remote = require('electron').remote; // for find in page
-//const searchInPage = require('electron-in-page-search').default;
-//const inPageSearch = searchInPage(remote.getCurrentWebContents());
 //const axios = require('axios');
 const portHelper = require('./src/portHelper')
 const appRunner = require('./src/appRunner')
@@ -20,11 +18,17 @@ const MACOS = "darwin"
 const WINDOWS = "win32"
 const LINUX = "linux"
 var confirmExit = false
-//var appPath = app.getAppPath()
 //const killStr = "taskkill /im Rscript.exe /f"
 const killStr = ""
+const util = require('util');
+//const exec2 = util.promisify(require('child_process').exec);
 
+//const util = require('util');
+//const promise_exec = util.promisify(child.exec);
+//const promise_exec = util.promisify(require('child_process').exec);
 
+// Initialization of path to RScript
+// Used to guess path to RScript 
 function defaultRscriptPath(){
   if (process.platform===LINUX){
       return('/usr/bin/Rscipt')
@@ -34,7 +38,7 @@ function defaultRscriptPath(){
      return('C:\\program Files\\R\\Rscript.exe') //or something????
   }
 }
-
+//Used to store rScript path and window dimensions
 const ExecPath=require("./src/execPath")
 const store = new Store({
   // We'll call our data file 'user-preferences'
@@ -45,34 +49,23 @@ const store = new Store({
     rscriptPath: defaultRscriptPath()
   }
 });
-
 ExecPath.store=store
-
-
-//const util = require('util');
-//const promise_exec = util.promisify(child.exec);
-//const promise_exec = util.promisify(require('child_process').exec);
-
-
 const getRscriptPath =  require("./src/execPath").getRscriptPath //debugging only
 getRscriptPath().then( v =>
-console.log("getRscriptPath=" + v )
+  console.log("getRscriptPath=" + v )
 )
-
-const util = require('util');
-
-
-//const exec2 = util.promisify(require('child_process').exec);
 
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 var loadingWindow=null
-//--------------->> pointR ------------------------------------
+
+//______________    >> pointR Window>>_______________________________________
+
 var pointRProcess = pointRRunner.process
 var pointRWindow=null
 var userGuideWindow=null
 
-//eventually would like to move this into pointRRunner
+//eventually may want to move this into pointRRunner
 function createPointRWindow(){
   let {width, height} = store.get('windowBounds')
   pointRWindow = new BrowserWindow({
@@ -85,7 +78,7 @@ function createPointRWindow(){
     width: width,
     height: height,
     title: "ptR"
-  })
+  }) // browserWindow 
   pointRWindow.webContents.once('dom-ready', () => {
     console.log(new Date().toISOString() + '::pointRWindow loaded')
     setTimeout(() => {
@@ -96,7 +89,7 @@ function createPointRWindow(){
       loadingWindow.hide()
       loadingWindow.close()
     }, 500) 
-  })
+  }) //webcContents 
   console.log('pointRWindow port='+ pointRRunner.port)
   pointRWindow.loadURL('http://127.0.0.1:' + pointRRunner.port)
   //pointRWindow.setMenu(null)
@@ -122,10 +115,10 @@ function createPointRWindow(){
   })
 } //end createPointRWindow
 
-//---------------<< pointR ------------------------------------
+//______________    << pointR Window<<_______________________________________
 
+//______________    >> ipcMain >>_______________________________________
 
-//------------------>> ipcMain------------------------------------
 // note to self ----- probably want to keep all ipcMain in main.js 
 const { ipcMain } = require('electron')
 
@@ -202,21 +195,29 @@ ipcMain.on('cmdStopAppRunner',
     }
   }
 )
-//------------------<< ipcMain------------------------------------
+//______________    << ipcMain <<_______________________________________
 
-//----------------->> startup ---------------------------------------
+//______________    << startup <<_______________________________________
+
+// function definitions for startup
+
+// error Box to report errors
 const errorBox2= util.promisify(dialog.showErrorBox)
 const asyncStartUpErr = async (title, mssg)=>{
   const rtv =await errorBox2( title, mssg)         
 }
 
+// start pointR webserver
+// ------->> tryStartPointRWebserver-------------
 const tryStartPointRWebserver = async () =>{
-  // check for R  
   console.log('-->> tryStartPointRWebserver')
+
+  // check for R installation 
   const rversion  = await pkgR.rVersion()
   if(rversion=='quit'){
     throw 'R-version-error'
   }
+
   // check for required packages
   const missing = await pkgR.missing() //returns array of missing
   //console.log('missing.length=', missing.length)
@@ -229,14 +230,19 @@ const tryStartPointRWebserver = async () =>{
       throw 'cancel-install-error'
     }
   }
+
   // finally spawn pointRProcess
   //var path2lib = path.join(__dirname,  'assets', 'library')
   var path2lib = path.join(path.dirname(app.getAppPath()), 'library')
   console.log('path2lib='+path2lib)
   pointRRunner.startPointRProcess(path2lib)
   return('success')
-}
+} 
+// -------<< tryStartPointRWebserver-------------
 
+
+// ------>> app.on('ready')-------------------
+// this is where we invoke the startup
 app.on('ready', async () => {
   // launch loading browser 
   loadingWindow = new BrowserWindow({
@@ -306,7 +312,9 @@ app.on('ready', async () => {
   })
   loadingWindow.show()
 }) 
+// ------<< app.on('ready')-------------------
 
+// ------>> app.on('activate')-------------------
 app.on('activate', function () {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
@@ -315,9 +323,13 @@ app.on('activate', function () {
     createPointRWindow()
   }
 })
-//-----------------<< startup ---------------------------------------
+// ------<< app.on('activate')-------------------
 
-//------------------>> cleanUp------------------------------------
+//______________    << startup <<_______________________________________
+
+
+//______________    >> cleanUp >>_______________________________________
+
 function cleanUpApplication() {
   console.log(new Date().toISOString() + '::cleanUpApplication')
   app.quit()

@@ -36,35 +36,34 @@ exports.startPointRProcess =(path2lib)=>{
     console.log('cannot startPointRProcess: already started?')
     return;
   }
+
+  //set up command and options
   exports.port = portHelper.randomPort()
   console.log('portMain=' + exports.port)
   console.log('path2lib=' + JSON.stringify(path2lib));
-  var ptR_Version = getPtRVersion (path2lib);
+  var ptR_Version = getPtRVersion (path2lib); //!!! probably not needed here
   console.log('pathptR_Version=' + JSON.stringify(ptR_Version));
+  
   var erLib = path2lib; //' //path.join(app.getAppPath(), 'assets', 'library');
   var libShinyCmd     = "library(shiny);library(pointR);";
   var optionsCmd  = "shiny::shinyOptions(electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + os.homedir() + "');";
   var libPathCmd="";
   var path2pointR="";
-  console.log('hello')
+  
   if( fs.existsSync(erLib) ){
     console.log('electron internal R lib exists')
     libPathCmd  = ".libPaths(c(Sys.getenv('E_LIB'), .libPaths()));"
-    path2pointR=  path.join(erLib, 'pointR','App') 
-    
-    //path2pointR=  path.join('.', 'assets', 'library', 'pointR', 'App'); //path.join(erLib, 'pointR','App') 
   } else {
     console.log('electron internal R lib does not exist')
     libPathCmd=""
-    path2pointR = "system.file('App', package = 'pointR')"
   } 
-  console.log('there')
+  
   var hbCmd =  "host = '127.0.0.1', launch.browser = FALSE," 
   //var runPtrCmd = "shiny::runApp(Sys.getenv('E_PTR_PATH'), " + hbCmd +"  port = as.integer(Sys.getenv('E_PTR_PORT')) )"
   var runPtrCmd = "shiny::runApp(system.file('App', package = 'pointR'), " + hbCmd +"  port = as.integer(Sys.getenv('E_PTR_PORT')) )"
   var processCmd  = libPathCmd + libShinyCmd + optionsCmd + runPtrCmd;
 
-  //console.log('execPath=' + exports.execPath)
+ 
 
   /* //alternatively
   fs.access(erLib, (err) => {
@@ -75,48 +74,29 @@ exports.startPointRProcess =(path2lib)=>{
       }
   })
   */
-
-  
-
-
-
-  
-  //".libPaths(c('" + path2lib +"', .libPaths() ));";
-  //var libPathCmd  = ".libPaths(); .libPaths('" + libPath +"');";
   
   
-  //var runAppCmd   = "shiny::runApp(system.file('App', package = 'pointR'), port=" + exports.port + ")";
-  //var path2pointR = path2lib + "/pointR/App/";
-  //console.log( path2pointR);
-  //var runAppCmd   = "shiny::runApp('" + path2pointR +"', port=" + exports.port + ")";
-  //var runAppCmd   = "shiny::runApp(system.file('App', package = 'pointR'), port=" + exports.port + ")";
-  
-  
-  //var processCmd  =  libsCmd + optionsCmd + runAppCmd;
-  //console.log(libPathCmd)
   console.log('execPath=' + exports.execPath)
   console.log("\nrunPtrCmd")
   console.log(runPtrCmd)
   console.log("\nprocessCmd")
   console.log(processCmd)
-  console.log("\npath2pointR")
-  console.log(path2pointR)
   console.log("\nerLib")
   console.log(erLib)
   console.log("\nexports.port")
   console.log(exports.port)
+
+  // spawn and return
   exports.process = child.spawn(exports.execPath, ["-e", processCmd], {
     env: {
-      'E_PTR_PATH':  path2pointR,
+      //'E_PTR_PATH':  path2pointR,
       'E_PTR_PORT':  exports.port,
       'E_LIB': erLib,
       'HOME': os.homedir()
     }
   }
   );
-  //exports.process = child.spawn(exports.execPath, ["-e",
-  //"library(shiny);shinyOptions(electron=TRUE);shiny::runApp(system.file('App', package = 'pointR'), port=" + exports.port + ")"
-  //])
+  
   exports.process.stdout.on('data', (data) => {
     console.log(`stdout:${data}`)
   })
@@ -131,3 +111,79 @@ exports.startPointRProcess =(path2lib)=>{
   return exports.process
 }
 
+
+/*
+exports.start_pointR_Process = async( 
+    path2lib, 
+    //attempt,   //counter
+    onErrorStartup, // critcial failure
+    onErrorLater,  // R process dies
+    onSuccess)=>{
+    if (attempt > 3) {
+      await progressCallback({attempt: attempt, code: 'failed'})
+      await onErrorStartup()
+      return
+    }
+    exports.port = portHelper.randomPort()
+    let shinyRunning = false
+    let shinyProcessAlreadyDead = false
+
+  const onError = async (e) => {
+    console.error(e)
+    rShinyProcess = null
+    if (shutdown) { // global state :(
+      return
+    }
+    if (shinyRunning) {
+      await onErrorLater()
+    } else {
+      await tryStartWebserver(attempt + 1, progressCallback, onErrorStartup, onErrorLater, onSuccess)
+    }
+  }
+
+  let rscript = exports.execPath
+
+ let ptrProcess = execa(rscript,
+    ['--vanilla', '-f', path.join(app.getAppPath(),  'assets', 'start_pointr.R')],
+    { 
+      env: {
+        'E_PTR_PORT':  exports.port,
+        'E_LIB': path2lib,
+        'HOME': os.homedir()
+      }
+    }).catch((e) => {
+        shinyProcessAlreadyDead = true
+        onError(e)
+    })
+
+  let url = `http://127.0.0.1:${exports.port}`
+  for (let i = 0; i <= 10; i++) {
+    if (shinyProcessAlreadyDead) {
+      break
+    }
+    await waitFor(500)
+    try {
+      const res = await http.head(url, {timeout: 1000})
+      // TODO: check that it is really shiny and not some other webserver
+      if (res.status === 200) {
+        //await progressCallback({attempt: attempt, code: 'success'})
+        shinyRunning = true
+        onSuccess(url)
+        return
+      }
+    } catch (e) {
+
+    }
+  }
+
+  // not sure what to do about this
+  //await progressCallback({attempt: attempt, code: 'notresponding'})
+
+  try {
+    rShinyProcess.kill()
+  } catch (e) {}
+
+
+
+}
+*/
