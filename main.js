@@ -237,19 +237,19 @@ const tryStartPointRWebserver = async () =>{
   console.log('path2lib='+path2lib)
 
   pointRRunner.startPointRProcess(path2lib)
-  console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
-   let alive=false;
+  //console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
+  let alive=false;
   console.log('about to loop')
-  alive= await portHelper.isAlive( pointRRunner.port)
-  console.log("alive =" + alive )
-  let url = `http://127.0.0.1:${pointRRunner.port}`
+  //alive= await portHelper.isAlive( pointRRunner.port)
+  //console.log("alive =" + alive )
+  //let url = `http://127.0.0.1:${pointRRunner.port}`
   //let res = await axios.head(url, {timeout: 1000})
-  // console.log('res main='+ JSON.stringify(res))
+  //console.log('res main='+ JSON.stringify(res))
 
-  for( let i=0; i++; i<10){
+  for( let i=0;  i<10; i++){
     //await waitFor(500);
-    console.log('inside loop')
-    console.log('i='+i);
+    //console.log('inside loop')
+    //console.log('i='+i);
     alive= await portHelper.isAlive( pointRRunner.port)
     // if(!alive){ } //message with i
     if(alive){ break}

@@ -30,15 +30,15 @@ const axios = require('axios');
 
 exports.isAlive = async function (port){
   let url = `http://127.0.0.1:${port}`
-  console.log(url);
+  //console.log(url);
   for (let i = 0; i <= 15; i++) { // tries fifteen times, 1/2 sec each, with 1 sec head (20.25 secs total)
     await waitFor(500)
     try {
       const res = await axios.head(url, {timeout: 1000})
-      console.log('isAlive: i='+i)
-      console.log('wow')
+      //console.log('isAlive: i='+i)
+      //console.log('wow')
       //console.info(res)
-      console.log('res='+JSON.stringify(res.status))
+      //console.log('res='+JSON.stringify(res.status))
       // TODO: check that it is really shiny and not some other webserver
       //console.log(typeof(res.status))
       if (res.status == 200) {
