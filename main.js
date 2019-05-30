@@ -7,7 +7,7 @@ const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
 const remote = require('electron').remote; // for find in page
-//const axios = require('axios');
+const axios = require('axios');
 const portHelper = require('./src/portHelper')
 const appRunner = require('./src/appRunner')
 const pointRRunner = require('./src/pointRRunner')
@@ -235,7 +235,31 @@ const tryStartPointRWebserver = async () =>{
   //var path2lib = path.join(__dirname,  'assets', 'library')
   var path2lib = path.join(path.dirname(app.getAppPath()), 'library')
   console.log('path2lib='+path2lib)
+
   pointRRunner.startPointRProcess(path2lib)
+  console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
+   let alive=false;
+  console.log('about to loop')
+  alive= await portHelper.isAlive( pointRRunner.port)
+  console.log("alive =" + alive )
+  let url = `http://127.0.0.1:${pointRRunner.port}`
+  //let res = await axios.head(url, {timeout: 1000})
+  // console.log('res main='+ JSON.stringify(res))
+
+  for( let i=0; i++; i<10){
+    //await waitFor(500);
+    console.log('inside loop')
+    console.log('i='+i);
+    alive= await portHelper.isAlive( pointRRunner.port)
+    // if(!alive){ } //message with i
+    if(alive){ break}
+  }
+  console.log('end of loop')
+  console.log('finally alive='+alive)
+  if(!alive){
+    throw('dead')
+  } 
+  
   return('success')
 } 
 // -------<< tryStartPointRWebserver-------------

@@ -31,15 +31,17 @@ var getPtRVersion=function (path2lib){
 	return ptR_version;
 }
 
-exports.startPointRProcess =(path2lib)=>{
+exports.startPointRProcess = async (path2lib)=>{
   if(!!exports.process){ //idiot check
     console.log('cannot startPointRProcess: already started?')
     return;
   }
 
   //set up command and options
+  console.log('prior to portHelper.randomPort')
   exports.port = portHelper.randomPort()
-  console.log('portMain=' + exports.port)
+ // console.log( 'exports.port='+ exports.port )
+  console.log('portMain=' + JSON.stringify(exports.port));
   console.log('path2lib=' + JSON.stringify(path2lib));
   var ptR_Version = getPtRVersion (path2lib); //!!! probably not needed here
   console.log('pathptR_Version=' + JSON.stringify(ptR_Version));
@@ -108,6 +110,8 @@ exports.startPointRProcess =(path2lib)=>{
     console.log('failure : ' + err);
     rscriptLoadError = true
   });
+
+  
   return exports.process
 }
 
