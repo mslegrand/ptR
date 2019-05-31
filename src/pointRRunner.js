@@ -46,8 +46,8 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER)=>{
   var ptR_Version = getPtRVersion (path2lib); //!!! probably not needed here
   console.log('pathptR_Version=' + JSON.stringify(ptR_Version));
   
-  var erLib = path2lib; //' //path.join(app.getAppPath(), 'assets', 'library');
-  var libShinyCmd     = "print(.libPaths());library('shiny');library('pointR');";
+  var erLib = path2lib; 
+  var libShinyCmd     = "library('shiny');library('pointR');";
   var optionsCmd  = "shiny::shinyOptions(electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + os.homedir() + "');";
   var libPathCmd="";
   var path2pointR="";

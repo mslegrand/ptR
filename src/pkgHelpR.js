@@ -6,8 +6,8 @@ const child = require('child_process');
 const util = require('util');
 const path = require('path')
 
-const missingScript="pm<-installed.packages()[,1]; reqPackages<-c(   \"shiny\",   \"shinyjs\",  \"R.utils\",   \"shinyAce\",   \"stringr\",     \"jsonlite\",   \"shinyFiles\",   \"shinythemes\",   \"colourpicker\",   \"shinyWidgets\",   \"bsplus\",   \"fs\",   \"knitr\",    \"tidyverse\",   \"svgR\" );  tt<-setdiff( reqPackages,pm ); if(length(tt)==0){    tt<-NULL  } else {   tt <-paste0('\"',tt,'\"', collapse=\", \") };  cat(paste0(\"[\",tt,\"]\")) "
-const installScript="pm<-installed.packages()[,1]; craPackages<-c(   \"shiny\",   \"shinyjs\",  \"R.utils\",   \"shinyAce\",   \"stringr\",     \"jsonlite\",    \"shinyFiles\",   \"shinythemes\",   \"colourpicker\",   \"shinyWidgets\",   \"bsplus\",   \"fs\",   \"knitr\",    \"tidyverse\" );             tt<-setdiff( craPackages,pm ); i=1; for(pkg in tt){   i<-i+1;   cat(paste(i,\"> installing\", pkg, \"\\n\"));   Sys.sleep(1);   install.packages(pkg); };  cat(\"endInstall\") "
+const missingScript="pm<-installed.packages()[,1]; reqPackages<-c(   \"shiny\",   \"shinyjs\",  \"R.utils\",   \"shinyAce\",   \"stringr\",     \"jsonlite\",   \"shinyFiles\",   \"shinythemes\",   \"colourpicker\",   \"shinyWidgets\",   \"bsplus\",   \"fs\",   \"knitr\",    \"tidyverse\"  );  tt<-setdiff( reqPackages,pm ); if(length(tt)==0){    tt<-NULL  } else {   tt <-paste0('\"',tt,'\"', collapse=\", \") };  cat(paste0(\"[\",tt,\"]\")) "
+const installScript="pm<-installed.packages()[,1]; craPackages<-c(   \"shiny\",   \"shinyjs\",  \"R.utils\",   \"shinyAce\",   \"stringr\",     \"jsonlite\",    \"shinyFiles\",   \"shinythemes\",   \"colourpicker\",   \"shinyWidgets\",   \"bsplus\",   \"fs\",   \"knitr\",    \"tidyverse\" );  tt<-setdiff( craPackages,pm ); i=1; for(pkg in tt){   i<-i+1;   cat(paste(i,\"> installing\", pkg, \"\\n\"));   Sys.sleep(1);   install.packages(pkg); };  cat(\"endInstall\") "
 // reading from file to get scripts  for install and missing files  didn't work,
 //  so I am embedding file contents as above const strings
 
