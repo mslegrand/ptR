@@ -6,8 +6,8 @@
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
-const remote = require('electron').remote; // for find in page
-const axios = require('axios');
+//const remote = require('electron').remote; // for find in page
+//const axios = require('axios');
 const portHelper = require('./src/portHelper')
 const appRunner = require('./src/appRunner')
 const pointRRunner = require('./src/pointRRunner')
@@ -22,7 +22,14 @@ var confirmExit = false
 const killStr = ""
 const util = require('util');
 //const exec2 = util.promisify(require('child_process').exec);
+const pev=process.env;
+const R_LIBS_USER=pev.R_LIBS_USER
+const testenv=pev.NO_EXIST
 
+//console.log('testenv mssg='+ JSON.stringify(testenv))
+//console.log('value of !!testenv  '+ !!testenv)
+//onsole.log('value of !testenv  '+ !testenv)
+//console.log('value of !!R_LIBS_USER  '+ !!R_LIBS_USER)
 //const util = require('util');
 //const promise_exec = util.promisify(child.exec);
 //const promise_exec = util.promisify(require('child_process').exec);
@@ -220,7 +227,7 @@ const tryStartPointRWebserver = async () =>{
 
   // check for required packages
   const missing = await pkgR.missing() //returns array of missing
-  //console.log('missing.length=', missing.length)
+  console.log('missing.length=', missing.length)
   if (missing.length > 0) { // if some packages are missing , need to install them. 
     var installNow = await pkgR.ask2Install() // query befor installing?
     if (installNow) { // do the installations
@@ -236,7 +243,7 @@ const tryStartPointRWebserver = async () =>{
   var path2lib = path.join(path.dirname(app.getAppPath()), 'library')
   console.log('path2lib='+path2lib)
 
-  pointRRunner.startPointRProcess(path2lib)
+  pointRRunner.startPointRProcess(path2lib, R_LIBS_USER)
   //console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
   let alive=false;
   console.log('about to loop')

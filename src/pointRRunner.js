@@ -31,7 +31,7 @@ var getPtRVersion=function (path2lib){
 	return ptR_version;
 }
 
-exports.startPointRProcess = async (path2lib)=>{
+exports.startPointRProcess = async (path2lib, R_LIBS_USER)=>{
   if(!!exports.process){ //idiot check
     console.log('cannot startPointRProcess: already started?')
     return;
@@ -47,18 +47,19 @@ exports.startPointRProcess = async (path2lib)=>{
   console.log('pathptR_Version=' + JSON.stringify(ptR_Version));
   
   var erLib = path2lib; //' //path.join(app.getAppPath(), 'assets', 'library');
-  var libShinyCmd     = "library(shiny);library(pointR);";
+  var libShinyCmd     = "print(.libPaths());library('shiny');library('pointR');";
   var optionsCmd  = "shiny::shinyOptions(electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + os.homedir() + "');";
   var libPathCmd="";
   var path2pointR="";
-  
-  if( fs.existsSync(erLib) ){
-    console.log('electron internal R lib exists')
-    libPathCmd  = ".libPaths(c(Sys.getenv('E_LIB'), .libPaths()));"
+
+   //todo add R_LIBS_USER to libPathCmd
+  if( !!R_LIBS_USER && fs.existsSync(R_LIBS_USER) ){
+    libPathCmd  = ".libPaths(unique(c(Sys.getenv('E_LIB'),  Sys.getenv('R_LIBS_USER'), .libPaths() )));"
   } else {
-    console.log('electron internal R lib does not exist')
-    libPathCmd=""
-  } 
+    libPathCmd  = ".libPaths(c(Sys.getenv('E_LIB'), .libPaths()));"
+  }
+
+ 
   
   var hbCmd =  "host = '127.0.0.1', launch.browser = FALSE," 
   //var runPtrCmd = "shiny::runApp(Sys.getenv('E_PTR_PATH'), " + hbCmd +"  port = as.integer(Sys.getenv('E_PTR_PORT')) )"
@@ -94,7 +95,8 @@ exports.startPointRProcess = async (path2lib)=>{
       //'E_PTR_PATH':  path2pointR,
       'E_PTR_PORT':  exports.port,
       'E_LIB': erLib,
-      'HOME': os.homedir()
+      'HOME': os.homedir(),
+      'R_LIBS_USER': R_LIBS_USER
     }
   }
   );
