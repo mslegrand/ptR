@@ -67,8 +67,8 @@
   "author": "Mark Stephen Legrand <slegrand3.14@gmail.com>",
   "license": "GPL-3.0",
   "devDependencies": {
-    "electron": "^4.0.7",
-    "electron-builder": "^20.40.2"
+    "electron": "^4.2.3",
+    "electron-builder": "^20.41.0"
   },
   "bugs": {
     "url": "https://github.com/mslegrand/pointRDeployR/issues"
