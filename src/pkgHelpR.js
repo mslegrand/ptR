@@ -6,8 +6,8 @@ const child = require('child_process');
 const util = require('util');
 const path = require('path')
 
-const missingScript="packageMatrix<-installed.packages(); requirePackages<-c(   \"shiny\",   \"shinyjs\",   \"R.utils\",   \"svgR\",   \"shinyAce\",   \"stringr\",     \"jsonlite\",   \"shinyFiles\",   \"shinythemes\",   \"colourpicker\",   \"shinyWidgets\",   \"bsplus\",   \"fs\",   \"knitr\",    \"tidyverse\");    pm<-packageMatrix[,1]; tt<-setdiff( requirePackages,pm ); if(length(tt)==0){    tt<-NULL  } else {   tt <-paste0('\"',tt,'\"', collapse=\", \") };  cat(paste0(\"[\",tt,\"]\")) "
-const installScript="packageMatrix<-installed.packages(); if(!(\"devtools\" %in% packageMatrix)){   install.packages(\"devtools\") }; library(devtools);  cranPackages<-c(   \"shiny\",   \"shinyjs\",     \"R.utils\",   \"shinyAce\",   \"stringr\",     \"jsonlite\",    \"shinyFiles\",   \"shinythemes\",   \"colourpicker\",   \"shinyWidgets\",   \"bsplus\",   \"fs\",   \"knitr\",    \"tidyverse\",   \"shinyjqui\" );  gitPackages<-c(   \"svgR\",   \"shinyDMDMenu\",   \"pointR\" );  pm<-packageMatrix[,1]; tt1<-setdiff( cranPackages,pm ); i=1; for(pkg in tt1){   i<-i+1;   cat(paste(i,\"> installing\", pkg));   Sys.sleep(1);   install.packages(pkg); }; tt2<-setdiff( gitPackages,pm ); for(pkg in tt2){   i<-i+1;   cat(paste(i,\"> installing\", pkg));   Sys.sleep(1);   install_github(paste0(\"mslegrand/\",pkg)); };  cat(\"endInstall\") "
+const missingScript="pm<-installed.packages()[,1]; reqPackages<-c(   \"shiny\",   \"shinyjs\",  \"R.utils\",   \"shinyAce\",   \"stringr\",     \"jsonlite\",   \"shinyFiles\",   \"shinythemes\",   \"colourpicker\",   \"shinyWidgets\",   \"bsplus\",   \"fs\",   \"knitr\",    \"tidyverse\",   \"svgR\" );  tt<-setdiff( reqPackages,pm ); if(length(tt)==0){    tt<-NULL  } else {   tt <-paste0('\"',tt,'\"', collapse=\", \") };  cat(paste0(\"[\",tt,\"]\")) "
+const installScript="pm<-installed.packages()[,1]; craPackages<-c(   \"shiny\",   \"shinyjs\",  \"R.utils\",   \"shinyAce\",   \"stringr\",     \"jsonlite\",    \"shinyFiles\",   \"shinythemes\",   \"colourpicker\",   \"shinyWidgets\",   \"bsplus\",   \"fs\",   \"knitr\",    \"tidyverse\" );             tt<-setdiff( craPackages,pm ); i=1; for(pkg in tt){   i<-i+1;   cat(paste(i,\"> installing\", pkg, \"\\n\"));   Sys.sleep(1);   install.packages(pkg); };  cat(\"endInstall\") "
 // reading from file to get scripts  for install and missing files  didn't work,
 //  so I am embedding file contents as above const strings
 
@@ -17,6 +17,7 @@ exports.rVersion = function(){
   return new Promise((resolve, reject) => {
     const  versionScript = 'cat(strsplit( R.version.string, " ")[[1]][3])'
     const  ecmd = exports.execPath + " -e '"+ versionScript + "'"
+    
     console.log('ecmd='+ecmd)
 
     const result = child.exec(ecmd, {timeout:0}, function(err, stdout, stderr){
@@ -26,7 +27,6 @@ exports.rVersion = function(){
     })
   })
 }
-
 
 
 exports.missing =() => {
