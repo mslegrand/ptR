@@ -1,13 +1,13 @@
-// inspired by both
+// inspired greatly by both
 // https://github.com/ksasso/useR_electron_meet_shiny
 // https://github.com/dirkschumacher/r-shiny-electron
-//require('electron-reload')(__dirname)
+
+//require('electron-reload')(__dirname) //convenient
 
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
-//const remote = require('electron').remote; // for find in page
-//const axios = require('axios');
+
 const portHelper = require('./src/portHelper')
 const appRunner = require('./src/appRunner')
 const pointRRunner = require('./src/pointRRunner')
@@ -57,6 +57,7 @@ const store = new Store({
   }
 });
 ExecPath.store=store
+
 const getRscriptPath =  require("./src/execPath").getRscriptPath //debugging only
 getRscriptPath().then( v =>
   console.log("getRscriptPath=" + v )
@@ -66,7 +67,7 @@ getRscriptPath().then( v =>
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 var loadingWindow=null
 
-//______________    >> pointR Window>>_______________________________________
+//______________    >> pointR Window >> _______________________________________
 
 var pointRProcess = pointRRunner.process
 var pointRWindow=null
@@ -122,9 +123,9 @@ function createPointRWindow(){
   })
 } //end createPointRWindow
 
-//______________    << pointR Window<<_______________________________________
+//______________    << pointR Window << _______________________________________
 
-//______________    >> ipcMain >>_______________________________________
+//______________ >> ipcMain >> _______________________________________
 
 // note to self ----- probably want to keep all ipcMain in main.js 
 const { ipcMain } = require('electron')
@@ -221,10 +222,17 @@ const tryStartPointRWebserver = async () =>{
 
   // check for R installation 
   const rversion  = await pkgR.rVersion()
+  console.log('rversion='+rversion)
   if(rversion=='quit'){
-    throw 'R-version-error'
+    console.log('throwing quit')
+    throw 'R-not-found'
   }
-
+  if(rversion!='ok'){
+    console.log('throwing rversion')
+    let versionError = Error(rversion)
+    versionError.name='BAD-R-VERSION'
+    throw versionError
+  }
   // check for required packages
   const missing = await pkgR.missing() //returns array of missing
   console.log('missing.length=', missing.length)
@@ -247,11 +255,7 @@ const tryStartPointRWebserver = async () =>{
   //console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
   let alive=false;
   console.log('about to loop')
-  //alive= await portHelper.isAlive( pointRRunner.port)
-  //console.log("alive =" + alive )
-  //let url = `http://127.0.0.1:${pointRRunner.port}`
-  //let res = await axios.head(url, {timeout: 1000})
-  //console.log('res main='+ JSON.stringify(res))
+  
 
   for( let i=0;  i<10; i++){
     //await waitFor(500);
@@ -322,12 +326,12 @@ app.on('ready', async () => {
       },5000) //die after 5 seconds
     } 
     if(!!abortStartUp){
-      if(abortStartUp==='R-version-error'){
-        console.log('founds err is:'+abortStartUp)
+      console.log('abortStartup')
+      if(abortStartUp==='R-not-found'){
+        //console.log('founds err is:'+abortStartUp)
         let result="R was not found!<br>ABORTING..."
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
         await asyncStartUpErr( "Aborting", "Rscript Load Error Have you installed R?")
-        
       } else if (abortStartUp==='cancel-install-error'){
         let result="Package installation canceled<br>ABORTING..."
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
@@ -337,9 +341,12 @@ app.on('ready', async () => {
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
         await asyncStartUpErr( "Aborting", "Cannot estabish pointR-server")
         console.log('loading window once '+ abortStartUp)
+      } else if(abortStartUp.name == 'BAD-R-VERSION'){
+        let result = 'R version is '+ abortStartUp.message + '. Please upgrade R to 3.5.3 or greater' 
+        loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
+        await asyncStartUpErr( "Aborting", result)
       }
     }
-    
   })
   loadingWindow.show()
 }) 
