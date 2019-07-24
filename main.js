@@ -26,6 +26,17 @@ const pev=process.env;
 const R_LIBS_USER=pev.R_LIBS_USER
 const testenv=pev.NO_EXIST
 
+//const { clipboard } = require('electron')
+//clipboard.writeText('Example String')
+//clipboard.writeText('Another Example String', 'clipboard');
+//clipboard.write({ text: 'test', html: '<b>test</b>' })
+//console.log(clipboard.readText('selection'))
+
+
+//var content = "Text that will be now on the clipboard as text";
+//clipboard.writeText('hello');
+
+//console.log('hello there')
 //console.log('testenv mssg='+ JSON.stringify(testenv))
 //console.log('value of !!testenv  '+ !!testenv)
 //onsole.log('value of !testenv  '+ !testenv)
@@ -245,6 +256,18 @@ const tryStartPointRWebserver = async () =>{
       throw 'cancel-install-error'
     }
   }
+  // check for Pandoc
+  const pandocAvail  = await pkgR.pandocAvailable();
+  console.log('pandocAvail='+pandocAvail); 
+  if(pandocAvail!='ok'){
+    let pandocError = Error(pandocAvail);
+    pandocError.name='MISSING-PANDOC';
+    throw pandocError
+  }
+
+  // use R cmd 'pandoc_available(version=NULL, error)
+  // if RStudio is installed can use Sys.getenv("RSTUDIO_PANDOC") to find
+  // ow. download and install from https://pandoc.org/installing.html
 
   // finally spawn pointRProcess
   //var path2lib = path.join(__dirname,  'assets', 'library')
@@ -343,6 +366,11 @@ app.on('ready', async () => {
         console.log('loading window once '+ abortStartUp)
       } else if(abortStartUp.name == 'BAD-R-VERSION'){
         let result = 'R version is '+ abortStartUp.message + '. Please upgrade R to 3.5.3 or greater' 
+        loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
+        await asyncStartUpErr( "Aborting", result)
+      } else if(abortStartUp.name == 'MISSING-PANDOC'){
+        let result = 'Unable to locate Pandoc \n Please install and place on your PATH.\n'+
+        'Pandoc is available at "https://pandoc.org/installing.html" '
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
         await asyncStartUpErr( "Aborting", result)
       }

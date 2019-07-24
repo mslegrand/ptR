@@ -26,6 +26,20 @@ exports.rVersion = function(){
   })
 }
 
+exports.pandocAvailable = function(){
+  return new Promise((resolve, reject) => {
+    const  pandocScript = 'if(rmarkdown::pandoc_available()){cat("ok")} else {cat("pandoc not found") }'
+    console.log( pandocScript)
+    const  ecmd = exports.execPath + " -e '"+ pandocScript + "'"
+    console.log('ecmd='+ecmd)
+    const result = child.exec(ecmd, {timeout:0}, function(err, stdout, stderr){
+      if(err){ resolve('quit')}
+      if(stderr){ resolve('quit')}
+      resolve(stdout)
+    })
+  })
+}
+
 
 exports.missing =() => {
     return new Promise((resolve, reject) => {

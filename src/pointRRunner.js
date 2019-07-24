@@ -89,7 +89,13 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER)=>{
   console.log("\nexports.port")
   console.log(exports.port)
 
+
+  if(!!exports.process){ //idiot check
+    console.log('cannot startPointRProcess: already started?')
+    return;
+  }
   // spawn and return
+  console.log('-------> startPointRProcess:  spawning <----------')
   exports.process = child.spawn(exports.execPath, ["-e", processCmd], {
     env: {
       //'E_PTR_PATH':  path2pointR,
