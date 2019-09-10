@@ -91,6 +91,7 @@ function createPointRWindow(){
     icon: path.join(__dirname, 'build/icons/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
+      //zoomFactor: 1.0,
       preload: __dirname + "/src/preloadPtr.js"   //"preload.js"
     },
     show: false,
@@ -113,6 +114,7 @@ function createPointRWindow(){
   pointRWindow.loadURL('http://127.0.0.1:' + pointRRunner.port)
   //pointRWindow.setMenu(null)
   pointRWindow.setMenuBarVisibility(false)
+  //pointRWindow.webContents.setZoomFactor(0.5)
   //pointRWindow.webContents.openDevTools() // Open the DevTools for debugging
   pointRWindow.on('close', function (event) {
     console.log("pointRWindow::close event")

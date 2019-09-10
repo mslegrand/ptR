@@ -1,5 +1,7 @@
 # Script that starts the shiny webserver
 # Parameters are supplied using environment variables
+# currently not used !!!
+
 
 .libPaths(c(Sys.getenv('E_LIB'), .libPaths()));
 
