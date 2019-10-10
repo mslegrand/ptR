@@ -3,7 +3,7 @@
 // https://github.com/dirkschumacher/r-shiny-electron
 
 //require('electron-reload')(__dirname) //convenient
-
+const chokidar = require("chokidar");
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
@@ -25,6 +25,7 @@ const util = require('util');
 const pev=process.env;
 const R_LIBS_USER=pev.R_LIBS_USER
 const testenv=pev.NO_EXIST
+
 
 //const { clipboard } = require('electron')
 //clipboard.writeText('Example String')
@@ -91,7 +92,7 @@ function createPointRWindow(){
     icon: path.join(__dirname, 'build/icons/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
-      //zoomFactor: 1.0,
+      //zoomFactor: 1.Y0,
       preload: __dirname + "/src/preloadPtr.js"   //"preload.js"
     },
     show: false,
