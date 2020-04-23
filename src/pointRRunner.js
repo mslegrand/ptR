@@ -5,12 +5,12 @@ const LINUX   = "linux"
 
 const child      = require('child_process')
 const portHelper = require('./portHelper')
-const fs         = require('fs')  
+  
 const os         = require('os')     
 //var execPath     = "Rscript"
 //const {  BrowserWindow } = require('electron')
 const path = require('path')
-
+const fs         = require('fs')
 exports.execPath=null
 exports.port=null
 exports.process  = null
@@ -31,7 +31,7 @@ var getPtRVersion=function (path2lib){
 	return ptR_version;
 }
 
-exports.startPointRProcess = async (path2lib, R_LIBS_USER)=>{
+exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC)=>{
   if(!!exports.process){ //idiot check
     console.log('cannot startPointRProcess: already started?')
     return;
@@ -102,7 +102,8 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER)=>{
       'E_PTR_PORT':  exports.port,
       'E_LIB': erLib,
       'HOME': os.homedir(),
-      'R_LIBS_USER': R_LIBS_USER
+      'R_LIBS_USER': R_LIBS_USER,
+      RSTUDIO_PANDOC: RSTUDIO_PANDOC
     }
   }
   );

@@ -3,11 +3,11 @@
 // https://github.com/dirkschumacher/r-shiny-electron
 
 //require('electron-reload')(__dirname) //convenient
-const chokidar = require("chokidar");
+//const chokidar = require("chokidar");
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
-
+const fs         = require('fs');
 const portHelper = require('./src/portHelper')
 const appRunner = require('./src/appRunner')
 const pointRRunner = require('./src/pointRRunner')
@@ -260,13 +260,28 @@ const tryStartPointRWebserver = async () =>{
     }
   }
   // check for Pandoc
-  const pandocAvail  = await pkgR.pandocAvailable();
-  console.log('pandocAvail='+pandocAvail); 
-  if(pandocAvail!='ok'){
-    let pandocError = Error(pandocAvail);
-    pandocError.name='MISSING-PANDOC';
-    throw pandocError
+  // for mac with RStudio, pandoc is found at
+  // /Applications/RStudio.app/Contents/MacOS/pandoc/pandoc
+  var RSTUDIO_PANDOC=null;
+  if(process.platform==MACOS && fs.existsSync( "/Applications/RStudio.app/Contents/MacOS/pandoc/pandoc")){
+  RSTUDIO_PANDOC="/Applications/RStudio.app/Contents/MacOS/pandoc"
+  // we are good for MAC :)
   }
+  if(process.platform==LINUX && fs.existsSync( "/usr/lib/rstudio/bin/pandoc/pandoc")){
+  RSTUDIO_PANDOC="/usr/lib/rstudio/bin/pandoc"
+  // we are good for LINUX :)
+  }
+  if(process.platform==WINDOWS && fs.existsSync( "/c/Program Files/RStudio/bin/pandoc/pandoc")){
+  // we are good for windows :)  
+  RSTUDIO_PANDOC="/c/Program Files/RStudio/bin/pandoc"
+  }   
+  // const pandocAvail  = await pkgR.pandocAvailable();
+  // console.log('pandocAvail='+pandocAvail); 
+  // if(pandocAvail!='ok'){
+  //  let pandocError = Error(pandocAvail);
+  //  pandocError.name='MISSING-PANDOC';
+  //  throw pandocError
+  // }
 
   // use R cmd 'pandoc_available(version=NULL, error)
   // if RStudio is installed can use Sys.getenv("RSTUDIO_PANDOC") to find
@@ -277,7 +292,7 @@ const tryStartPointRWebserver = async () =>{
   var path2lib = path.join(path.dirname(app.getAppPath()), 'library')
   console.log('path2lib='+path2lib)
 
-  pointRRunner.startPointRProcess(path2lib, R_LIBS_USER)
+  pointRRunner.startPointRProcess(path2lib, R_LIBS_USER, RSTUDIO_PANDOC)
   //console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
   let alive=false;
   console.log('about to loop')
@@ -319,7 +334,7 @@ app.on('ready', async () => {
   loadingWindow.loadURL(`file://${__dirname}/src/splash.html`);
   //loadingWindow.webContents.openDevTools()  //for debugging only
   loadingWindow.once('show', async () => {
-    var abortStartUp=null
+    var abortStartUp=null;
     //console.log('waiting for tryStartPointRWebserve')
     try{
       console.log('--->>loading once try')
@@ -343,13 +358,13 @@ app.on('ready', async () => {
     } 
     catch( err){
       abortStartUp=err
-      console.log('err is:'+err)
+      console.log(`err is: ${err}`)
       setTimeout(() => {
         console.log('and here')
         loadingWindow.hide()
         loadingWindow.close()
         cleanUpApplication()
-      },5000) //die after 5 seconds
+      },10000) //die after 5 seconds
     } 
     if(!!abortStartUp){
       console.log('abortStartup')
