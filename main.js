@@ -11,7 +11,7 @@ const fs         = require('fs');
 const portHelper = require('./src/portHelper')
 const appRunner = require('./src/appRunner')
 const pointRRunner = require('./src/pointRRunner')
-
+const pandoc = require('./src/pandoc')
 const pkgR = require('./src/pkgHelpR')
 const child = require('child_process')
 const MACOS = "darwin"
@@ -21,11 +21,9 @@ var confirmExit = false
 //const killStr = "taskkill /im Rscript.exe /f"
 const killStr = ""
 const util = require('util');
-//const exec2 = util.promisify(require('child_process').exec);
 const pev=process.env;
 const R_LIBS_USER=pev.R_LIBS_USER
 const testenv=pev.NO_EXIST
-
 
 //const { clipboard } = require('electron')
 //clipboard.writeText('Example String')
@@ -37,26 +35,47 @@ const testenv=pev.NO_EXIST
 //var content = "Text that will be now on the clipboard as text";
 //clipboard.writeText('hello');
 
-//console.log('hello there')
-//console.log('testenv mssg='+ JSON.stringify(testenv))
-//console.log('value of !!testenv  '+ !!testenv)
-//onsole.log('value of !testenv  '+ !testenv)
-//console.log('value of !!R_LIBS_USER  '+ !!R_LIBS_USER)
 //const util = require('util');
 //const promise_exec = util.promisify(child.exec);
 //const promise_exec = util.promisify(require('child_process').exec);
 
 // Initialization of path to RScript
 // Used to guess path to RScript 
-function defaultRscriptPath(){
-  if (process.platform===LINUX){
-      return('/usr/bin/Rscipt')
-  } else if(process.platform==MACOS){
-      return('/usr/local/bin/Rscript')
-  } else {
-     return('C:\\program Files\\R\\Rscript.exe') //or something????
-  }
+// function defaultRscriptPath(){
+//   if (process.platform===LINUX){
+//       return('/usr/bin/Rscipt')
+//   } else if(process.platform==MACOS){
+//       return('/usr/local/bin/Rscript')
+//   } else {
+//      return('C:\\program Files\\R\\Rscript.exe') //or something????
+//   }
+// }
+
+// const RscriptDefaults= {
+//   "darwin": '/usr/local/bin/Rscript',
+//   "linux": "'/usr/bin/Rscript'",
+//   WINDOWS: 'C:\\program Files\\R\\Rscript.exe'
+// }
+// console.log('RscriptDefaults='+ JSON.stringify(RscriptDefaults))
+// const pandocDefaults= {
+//   MACOS: "/Applications/RStudio.app/Contents/MacOS/pandoc",
+//   LINUX: "/usr/lib/rstudio/bin/pandoc",
+//   WINDOWS: "/c/Program Files/RStudio/bin/pandoc"
+// }
+
+var getDefaultPath_Rscript = (os) => {
+  if(os===MACOS){ return '/usr/local/bin/Rscript' }
+  else if (os===LINUX){return '/usr/bin/Rscript' }
+  else return 'C:\\program Files\\R\\Rscript.exe'
 }
+
+var getDefaultPath_PANDOC = (os)=>{
+  if(os===MACOS){ return "/Applications/RStudio.app/Contents/MacOS/pandoc" }
+  else if (os===LINUX){return "/usr/lib/rstudio/bin/pandoc" }
+  else return "/c/Program Files/RStudio/bin/pandoc"
+}
+
+
 //Used to store rScript path and window dimensions
 const ExecPath=require("./src/execPath")
 const store = new Store({
@@ -65,15 +84,16 @@ const store = new Store({
   defaults: {
     // 800x600 is the default size of our window
     windowBounds: { width: 800, height: 600 },
-    rscriptPath: defaultRscriptPath()
+    rscriptPath: getDefaultPath_Rscript(process.platform),
+    pandocPath:  getDefaultPath_PANDOC( process.platform)
   }
 });
-ExecPath.store=store
 
+ExecPath.store=store
+pandoc.store=store
+console.log('\nstore=\n'+JSON.stringify(store))
 const getRscriptPath =  require("./src/execPath").getRscriptPath //debugging only
-getRscriptPath().then( v =>
-  console.log("getRscriptPath=" + v )
-)
+
 
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
@@ -247,6 +267,9 @@ const tryStartPointRWebserver = async () =>{
     versionError.name='BAD-R-VERSION'
     throw versionError
   }
+  pandocPath = await  pandoc.getPandocPath(); 
+  console.log(JSON.stringify(pandocPath))
+  var RSTUDIO_PANDOC=pandocPath;
   // check for required packages
   const missing = await pkgR.missing() //returns array of missing
   console.log('missing.length=', missing.length)
@@ -259,22 +282,8 @@ const tryStartPointRWebserver = async () =>{
       throw 'cancel-install-error'
     }
   }
-  // check for Pandoc
-  // for mac with RStudio, pandoc is found at
-  // /Applications/RStudio.app/Contents/MacOS/pandoc/pandoc
-  var RSTUDIO_PANDOC=null;
-  if(process.platform==MACOS && fs.existsSync( "/Applications/RStudio.app/Contents/MacOS/pandoc/pandoc")){
-  RSTUDIO_PANDOC="/Applications/RStudio.app/Contents/MacOS/pandoc"
-  // we are good for MAC :)
-  }
-  if(process.platform==LINUX && fs.existsSync( "/usr/lib/rstudio/bin/pandoc/pandoc")){
-  RSTUDIO_PANDOC="/usr/lib/rstudio/bin/pandoc"
-  // we are good for LINUX :)
-  }
-  if(process.platform==WINDOWS && fs.existsSync( "/c/Program Files/RStudio/bin/pandoc/pandoc")){
-  // we are good for windows :)  
-  RSTUDIO_PANDOC="/c/Program Files/RStudio/bin/pandoc"
-  }   
+
+  
   // const pandocAvail  = await pkgR.pandocAvailable();
   // console.log('pandocAvail='+pandocAvail); 
   // if(pandocAvail!='ok'){
@@ -338,8 +347,9 @@ app.on('ready', async () => {
     //console.log('waiting for tryStartPointRWebserve')
     try{
       console.log('--->>loading once try')
-      execPath= await getRscriptPath()
       
+      execPath= await getRscriptPath()
+      loadingWindow.webContents.send('updateSplashTextBox', {msg: 'Rscript located'});
       await async function(){
         console.log("00 execPath="+ execPath)
         pkgR.execPath=execPath
@@ -364,14 +374,17 @@ app.on('ready', async () => {
         loadingWindow.hide()
         loadingWindow.close()
         cleanUpApplication()
-      },10000) //die after 5 seconds
+      },1000) //die after 5 seconds
     } 
     if(!!abortStartUp){
       console.log('abortStartup')
+      console.log('founds err is:'+abortStartUp)
+      // let result="R was not found!<br>ABORTING..."
+      // loadingWindow.webContents.send('updateSplashTextBox', {msg: "R was not found!<br>ABORTING..."});
       if(abortStartUp==='R-not-found'){
-        //console.log('founds err is:'+abortStartUp)
-        let result="R was not found!<br>ABORTING..."
-        loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
+        console.log('founds err is:'+abortStartUp)
+         let result="R was not found!<br>ABORTING..."
+         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
         await asyncStartUpErr( "Aborting", "Rscript Load Error Have you installed R?")
       } else if (abortStartUp==='cancel-install-error'){
         let result="Package installation canceled<br>ABORTING..."
@@ -393,8 +406,15 @@ app.on('ready', async () => {
         await asyncStartUpErr( "Aborting", result)
       }
     }
+    // setTimeout(() => {
+    //   console.log('and here')
+    //   loadingWindow.hide()
+    //   loadingWindow.close()
+    //   cleanUpApplication()
+    // },100) //die after 5 seconds
   })
   loadingWindow.show()
+  loadingWindow.webContents.send('updateSplashTextBox', {msg: 'hello'});
 }) 
 // ------<< app.on('ready')-------------------
 

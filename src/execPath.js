@@ -1,61 +1,77 @@
-const {dialog}   = require('electron')
+const {dialog}   =  require('electron')
 const fs = require('fs')
 
 exports.store =null
 
+ask4Rscript = async ()=>{
+    console.log('ask4Rscript')
+    
+    const options={title: 'Navigate and select Rscript', 
+        buttonLabel: 'Select Rscript', 
+        //icon: "assets/images/32x32.png",
+        properties:["openFile"]
+    }
+    result= await dialog.showOpenDialog( options )        
+    if(result.canceled===true){
+        return false;   
+    } else {// save file here
+        
+        filePaths=result.filePaths[0]
+        console.log(JSON.stringify(filePaths))
+        exports.store.set("rscriptPath", filePaths)
+        return true
+    }      
+}
 
-
-
-exports.ask4Rscript =()=>{
-    return new Promise(  (resolve, reject) =>{
-        dialog.showMessageBox(
-            {
-                type: 'question',
-                message: "Rscript was not found, -(\nIf indeed, R is  installed please supply path to your Rscript." ,
-                buttons: ["Supply path to Rscript Now","Later"],
-            },
-            (i) => { 
-                if(i==0){
-                    const options={title: 'Navigate and select Rscript', 
-                    buttonLabel: 'Select', 
-                    properties:['openFile',  'showHiddenFiles']
-                    }
-                    dialog.showOpenDialog(null, options, (filePaths)=>{
-                        // check that selected is Rscipte
-                        // save file here
-                        if(filePaths.length>0){
-                            filePaths=filePaths[0]
-                            exports.store.set("rscriptPath", filePaths)
-                            resolve(true)
-                        } else {
-                            resolve(false)
-                        } 
-                    })
-                } else {
-                    resolve(false)
-                }
-            }
-        )
+inputRscriptLocationYN = function() {
+    return new Promise((resolve, reject)=>{
+        dialog.showMessageBox({
+            type: 'question',
+            message: "Rscript was not found, -(\nIf indeed, R is  installed please supply path to your Rscript." ,
+            buttons: ["Supply Now", "Cancel"],
+            icon: "assets/images/32x32.png",
+            defaultId: 0, // bound to buttons array
+            cancelId:  1  // bound to buttons array
+        }).then(result => {
+            if (result.response === 0) {
+              // bound to buttons array
+              console.log("Default button (0) clicked.");
+              resolve(true)
+            } else if (result.response === 1) {
+              // bound to buttons array
+              console.log("Cancel button clicked.");
+              resolve(false)
+            }})
     })
 }
 
 
 exports.getRscriptPath= async function(){
-    var again =true
-    var rscriptPath='yyy'
-    for(let i=0; i<3; i++){
-        //if(i>0) //for testing
-        rscriptPath=exports.store.get("rscriptPath")
-        if( fs.existsSync(rscriptPath)){ //add check for name ??
-            return rscriptPath
-        } else {
-            again =  await exports.ask4Rscript()
-            if(!again){
-                rscriptPath
+    const path = require('path');
+    rscriptPath= exports.store.get("rscriptPath")
+    console.log('2: rscriptPath='+ JSON.stringify(rscriptPath))
+    if( fs.existsSync(rscriptPath)  
+        && //add check for name ??
+        'Rscript'===path.basename(rscriptPath,path.extname(rscriptPath))
+    ){ 
+        return  rscriptPath  
+    } else {
+        console.log('inside else')
+        enterLocation =  await inputRscriptLocationYN()
+        console.log('enterLocation='+ enterLocation)
+        if(enterLocation===true){
+            console.log("enterLocation is true")
+            goOn = await ask4Rscript()
+            console.log('goOn='+ goOn)
+            if(goOn===false){
+                throw(Error('R-not-found'))
+            } else {
+                return exports.getRscriptPath() 
             }
+        } else {
+            throw(Error('R-not-found'))
         }
-    }
-    return rscriptPath 
+    } 
 }
 
 
