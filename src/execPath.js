@@ -27,7 +27,7 @@ inputRscriptLocationYN = function() {
     return new Promise((resolve, reject)=>{
         dialog.showMessageBox({
             type: 'question',
-            message: "Rscript was not found, -(\nIf indeed, R is  installed please supply path to your Rscript." ,
+            message: "Rscript was not found, -(\nIf indeed, R is  installed please supply path to your Rscript Executable." ,
             buttons: ["Supply Now", "Cancel"],
             icon: "assets/images/32x32.png",
             defaultId: 0, // bound to buttons array

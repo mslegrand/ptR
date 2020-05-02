@@ -13,6 +13,7 @@ class Store {
     this.path = path.join(userDataPath, opts.configName + '.json');
     
     this.data = parseDataFile(this.path, opts.defaults);
+    //this.data = opts.defaults;
   }
   
   // This will just return the property on the `data` object
@@ -40,7 +41,17 @@ function parseDataFile(filePath, defaults) {
   // We'll try/catch it in case the file doesn't exist yet, which will be the case on the first application run.
   // `fs.readFileSync` will return a JSON string which we then parse into a Javascript object
   try {
-    return JSON.parse(fs.readFileSync(filePath));
+    // throw('err')
+    var rtv = JSON.parse(fs.readFileSync(filePath));
+    if (typeof rtv['windowBounds'] === "undefined"){
+      rtv['windowBounds']=defaults['windowBounds']
+    }
+    if (typeof rtv['rscriptPath'] === "undefined"){
+      rtv['rscriptPath']=defaults['rscriptPath']
+    }if (typeof rtv['pandocPath'] === "undefined"){
+      rtv['pandocPath']=defaults['pandocPath']
+    }
+    return defaults;
   } catch(error) {
     // if there was some kind of error, return the passed in defaults instead.
     return defaults;

@@ -12,10 +12,10 @@ ask4PandocDialog = async ()=>{
     if(result.canceled===true){
         console.log('canceling')
         Promise.resolve(false);   
-    } else {// save file here    
+    } else {// save path here    
         filePaths=result.filePaths[0]
         console.log(JSON.stringify(filePaths))
-        exports.store.set("rscriptPath", filePaths)
+        exports.store.set("pandocPath", filePaths)
         Promise.resolve(true)
     }      
 }
@@ -26,7 +26,7 @@ exports.getPandocPath= async function(){
     console.log('2: pandoc='+ JSON.stringify(pdpath))
     if( fs.existsSync(pdpath)  &&
         // && //add check for name ??
-        'pandocX'===path.basename(pdpath,path.extname(pdpath))
+        'pandoc'===path.basename(pdpath,path.extname(pdpath))
     ){ 
         return  pdpath  
     } else {
@@ -34,7 +34,7 @@ exports.getPandocPath= async function(){
             inputPathYN =  await dialog.showMessageBox({
                 type: 'question',
                 icon: "assets/images/32x32.png",
-                message: "Pandoc was not found, -(\nIf indeed, Pandoc is  installed please supply path to the Pandoc directory." ,
+                message: "Pandoc was not found, -(\nIf indeed, Pandoc is  installed please supply path to the Pandoc Directory." ,
                 buttons: ["Supply Now", "Cancel"],
                 defaultId: 0, // bound to buttons array
                 cancelId:  1  // bound to buttons array
