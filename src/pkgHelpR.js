@@ -17,7 +17,6 @@ exports.rVersion = function(){
   return new Promise((resolve, reject) => {
     const  versionScript = 'if(getRversion()>="3.5.0"){cat("ok")} else {cat(unlist(getRversion()),sep=".") }'
     const  ecmd = exports.execPath + " -e '"+ versionScript + "'"
-    //console.log('ecmd='+ecmd)
     const result = child.exec(ecmd, {timeout:0}, function(err, stdout, stderr){
       if(err){ resolve('quit')}
       if(stderr){ resolve('quit')}

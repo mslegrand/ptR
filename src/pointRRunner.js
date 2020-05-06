@@ -96,17 +96,17 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC)=>{
   }
   // spawn and return
   console.log('-------> startPointRProcess:  spawning <----------')
-  exports.process = child.spawn(exports.execPath, ["-e", processCmd], {
-    env: {
-      //'E_PTR_PATH':  path2pointR,
-      'E_PTR_PORT':  exports.port,
-      'E_LIB': erLib,
-      'HOME': os.homedir(),
-      'R_LIBS_USER': R_LIBS_USER,
-      RSTUDIO_PANDOC: RSTUDIO_PANDOC
-    }
+  var env = {
+    //'E_PTR_PATH':  path2pointR,
+    'E_PTR_PORT':  exports.port,
+    'E_LIB': erLib,
+    'HOME': os.homedir(),
+    'R_LIBS_USER': R_LIBS_USER
   }
-  );
+  if(!! RSTUDIO_PANDOC){
+    env.RSTUDIO_PANDOC = RSTUDIO_PANDOC;
+  }
+  exports.process = child.spawn(exports.execPath, ["-e", processCmd], {env: env});
   
   exports.process.stdout.on('data', (data) => {
     console.log(`stdout:${data}`)

@@ -39,59 +39,19 @@ const testenv=pev.NO_EXIST
 //const promise_exec = util.promisify(child.exec);
 //const promise_exec = util.promisify(require('child_process').exec);
 
-// Initialization of path to RScript
-// Used to guess path to RScript 
-// function defaultRscriptPath(){
-//   if (process.platform===LINUX){
-//       return('/usr/bin/Rscipt')
-//   } else if(process.platform==MACOS){
-//       return('/usr/local/bin/Rscript')
-//   } else {
-//      return('C:\\program Files\\R\\Rscript.exe') //or something????
-//   }
-// }
-
-// const RscriptDefaults= {
-//   "darwin": '/usr/local/bin/Rscript',
-//   "linux": "'/usr/bin/Rscript'",
-//   WINDOWS: 'C:\\program Files\\R\\Rscript.exe'
-// }
-// console.log('RscriptDefaults='+ JSON.stringify(RscriptDefaults))
-// const pandocDefaults= {
-//   MACOS: "/Applications/RStudio.app/Contents/MacOS/pandoc",
-//   LINUX: "/usr/lib/rstudio/bin/pandoc",
-//   WINDOWS: "/c/Program Files/RStudio/bin/pandoc"
-// }
-
-var getDefaultPath_Rscript = (os) => {
-  if(os===MACOS){ return '/usr/local/bin/Rscript' }
-  else if (os===LINUX){return '/usr/bin/Rscript' }
-  else return 'C:\\program Files\\R\\Rscript.exe'
-}
-
-var getDefaultPath_PANDOC = (os)=>{
-  if(os===MACOS){ return "/Applications/RStudio.app/Contents/MacOS/pandoc" }
-  else if (os===LINUX){return "/usr/lib/rstudio/bin/pandoc" }
-  else return "/c/Program Files/RStudio/bin/pandoc"
-}
-
-
 //Used to store rScript path and window dimensions
 const ExecPath=require("./src/execPath")
-const store = new Store({
-  // We'll call our data file 'user-preferences'
+
+
+const store = new Store({ 
   configName: 'user-preferences',
-  defaults: {
-    // 800x600 is the default size of our window
-    windowBounds: { width: 800, height: 600 },
-    rscriptPath: getDefaultPath_Rscript(process.platform),
-    pandocPath:  getDefaultPath_PANDOC( process.platform)
-  }
-});
+  os: process.platform
+})
+
 
 ExecPath.store=store
 pandoc.store=store
-console.log('\nstore=\n'+JSON.stringify(store))
+//onsole.log('\nstore=\n'+JSON.stringify(store))
 const getRscriptPath =  require("./src/execPath").getRscriptPath //debugging only
 
 
@@ -138,8 +98,8 @@ function createPointRWindow(){
   //pointRWindow.webContents.setZoomFactor(0.5)
   //pointRWindow.webContents.openDevTools() // Open the DevTools for debugging
   pointRWindow.on('close', function (event) {
-    console.log("pointRWindow::close event")
-    console.log("confirmExit=" + JSON.stringify(confirmExit))
+    // console.log("pointRWindow::close event")
+    // console.log("confirmExit=" + JSON.stringify(confirmExit))
     if (!confirmExit) {
       event.preventDefault();
       console.log("pointRWindow:: after e.preventDefault()")
@@ -152,7 +112,7 @@ function createPointRWindow(){
   })
   // Emitted when the window is closed.
   pointRWindow.on('closed', function () {
-    console.log(new Date().toISOString() + '::pointRWindow.closed()')
+    // console.log(new Date().toISOString() + '::pointRWindow.closed()')
     cleanUpApplication()
   })
 } //end createPointRWindow
@@ -165,7 +125,7 @@ function createPointRWindow(){
 const { ipcMain } = require('electron')
 
 ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
-  console.log('inside electron main ' + argPath + " " + argTabId)
+  // console.log('inside electron main ' + argPath + " " + argTabId)
     try{
       appRunner.launch(argPath, argTabId, pointRWindow)
     } catch(err){
@@ -184,20 +144,20 @@ ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
 ipcMain.on('confirmExitMssg', (event, arg) => {
   console.log(new Date().toISOString() + ':: ipcMain.on confirmExit')
   confirmExit = true;
-  console.log(new Date().toISOString() + ':: confirmExit=' + confirmExit)
+  // console.log(new Date().toISOString() + ':: confirmExit=' + confirmExit)
   event.returnValue = 'hello';
 })
 
 ipcMain.on('cmdSetTitle',
   (event, arg1, arg2) => {
-    console.log(new Date().toISOString() + ':: ipcMain.on cmdSetTitle')
+    // console.log(new Date().toISOString() + ':: ipcMain.on cmdSetTitle')
     pointRWindow.setTitle(arg1 + " " + arg2)
   }
 )
 
 ipcMain.on('cmdOpenLink',
   (event, arg1, arg2) => {
-    console.log(new Date().toISOString() + ':: ipcMain.on cmdOpenLink')
+    // console.log(new Date().toISOString() + ':: ipcMain.on cmdOpenLink')
     shell.openExternal(arg1 + arg2)
   }
 )
@@ -226,14 +186,14 @@ ipcMain.on('cmdOpenWindow',
 
 ipcMain.on('cmdStopAppRunner',
   (event, arg1, arg2) => {
-    console.log(new Date().toISOString() + ':: ipcMain.on cmdStopAppRunner')
-    console.log(arg1 + 'arg2')
+    // console.log(new Date().toISOString() + ':: ipcMain.on cmdStopAppRunner')
+    // console.log(arg1 + 'arg2')
     if (!!appRunner.window) {
       console.log('!!cmdStopAppRunner==true')
       appRunner.window.close()
       appRunner.window=null //?
     } else{
-      console.log('!!cmdStopAppRunner==false')
+      // console.log('!!cmdStopAppRunner==false')
     }
   }
 )
@@ -267,9 +227,17 @@ const tryStartPointRWebserver = async () =>{
     versionError.name='BAD-R-VERSION'
     throw versionError
   }
-  pandocPath = await  pandoc.getPandocPath(); 
-  console.log(JSON.stringify(pandocPath))
-  var RSTUDIO_PANDOC=pandocPath;
+  const pdocOnpath = await pandoc.onPath(process.platform);
+  console.log("pDocOnpath="+JSON.stringify(pdocOnpath))
+  var RSTUDIO_PANDOC
+  if(!pdocOnpath){
+    pandocPath = await  pandoc.getPandocPath(); 
+    console.log(JSON.stringify(pandocPath))
+    RSTUDIO_PANDOC=pandocPath;
+  } else {
+    RSTUDIO_PANDOC=null;
+  }
+  
   // check for required packages
   const missing = await pkgR.missing() //returns array of missing
   console.log('missing.length=', missing.length)
@@ -284,13 +252,7 @@ const tryStartPointRWebserver = async () =>{
   }
 
   
-  // const pandocAvail  = await pkgR.pandocAvailable();
-  // console.log('pandocAvail='+pandocAvail); 
-  // if(pandocAvail!='ok'){
-  //  let pandocError = Error(pandocAvail);
-  //  pandocError.name='MISSING-PANDOC';
-  //  throw pandocError
-  // }
+  
 
   // use R cmd 'pandoc_available(version=NULL, error)
   // if RStudio is installed can use Sys.getenv("RSTUDIO_PANDOC") to find
@@ -299,12 +261,12 @@ const tryStartPointRWebserver = async () =>{
   // finally spawn pointRProcess
   //var path2lib = path.join(__dirname,  'assets', 'library')
   var path2lib = path.join(path.dirname(app.getAppPath()), 'library')
-  console.log('path2lib='+path2lib)
+  // console.log('path2lib='+path2lib)
 
   pointRRunner.startPointRProcess(path2lib, R_LIBS_USER, RSTUDIO_PANDOC)
   //console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
   let alive=false;
-  console.log('about to loop')
+  // console.log('about to loop')
   
 
   for( let i=0;  i<10; i++){
@@ -315,8 +277,8 @@ const tryStartPointRWebserver = async () =>{
     // if(!alive){ } //message with i
     if(alive){ break}
   }
-  console.log('end of loop')
-  console.log('finally alive='+alive)
+  // console.log('end of loop')
+  // console.log('finally alive='+alive)
   if(!alive){
     throw('dead')
   } 

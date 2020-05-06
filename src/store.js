@@ -4,6 +4,32 @@ const electron = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+const MACOS = "darwin"
+const WINDOWS = "win32"
+const LINUX = "linux"
+
+var getDefaultPath_Rscript = (os) => {
+  if(os===MACOS){ return '/usr/local/bin/Rscript' }
+  else if (os===LINUX){return '/usr/bin/Rscript' }
+  else return 'C:\\program Files\\R\\Rscript.exe'
+}
+
+var getDefaultPath_PANDOC = (os)=>{
+  if(os===MACOS){ return "/Applications/RStudio.app/Contents/MacOS/pandoc" }
+  else if (os===LINUX){return "/usr/lib/rstudio/bin/pandoc" }
+  else return "/c/Program Files/RStudio/bin/pandoc"
+}
+
+var getStoreDefaults = (os) => {
+  return {
+    // 800x600 is the default size of our window
+    windowBounds: { width: 1200, height: 600 },
+    rscriptPath: getDefaultPath_Rscript(process.platform),
+    pandocPath:  getDefaultPath_PANDOC( process.platform)
+  }
+}
+
+
 class Store {
   constructor(opts) {
     // Renderer process has to get `app` module via `remote`, whereas the main process can get it directly
@@ -11,8 +37,8 @@ class Store {
     const userDataPath = (electron.app || electron.remote.app).getPath('userData');
     // We'll use the `configName` property to set the file name and path.join to bring it all together as a string
     this.path = path.join(userDataPath, opts.configName + '.json');
-    
-    this.data = parseDataFile(this.path, opts.defaults);
+    var storeDefaults = getStoreDefaults(opts.os)
+    this.data = parseDataFile(this.path, storeDefaults );
     //this.data = opts.defaults;
   }
   

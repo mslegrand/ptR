@@ -1,26 +1,52 @@
 const {dialog}   =  require('electron')
 const fs = require('fs')
+
+const {dirname} =require('path')
+
 exports.store =null
+
+const {execSync} = require('child_process');
+
+exports.onPath =  async (os) => {
+    // based on the oswe execute one of the following
+    // windows: where.exe pandoc.*
+    // osx:   which pandoc
+    // linux: which pandoc
+    var ecmd;
+    console.log('os='+os)
+    if(os==='win32'){
+        ecmd='where.exe pandoc.*'
+    } else {
+        ecmd='which pandoc'
+    }
+    try{
+        let ppath = execSync(ecmd ).toString()
+        console.log("ppath="+ppath);
+        return !!ppath
+    } catch {
+        return false
+    }
+}
 
 ask4PandocDialog = async ()=>{
     console.log('ask4PandocDialog')  
-    const options={title: 'Navigate and select Pandoc directory', 
-        buttonLabel: 'Select Dir', 
-        properties:["openDirectory"]
+    const options={title: 'Navigate and select Pandoc file', 
+        buttonLabel: 'Select File', 
+        properties:["openFile"]
     }
     result= await dialog.showOpenDialog( options )        
     if(result.canceled===true){
         console.log('canceling')
         Promise.resolve(false);   
     } else {// save path here    
-        filePaths=result.filePaths[0]
+        filePaths=dirname(result.filePaths[0])
         console.log(JSON.stringify(filePaths))
         exports.store.set("pandocPath", filePaths)
         Promise.resolve(true)
     }      
 }
 
-exports.getPandocPath= async function(){
+exports.getPandocPath= async () => {  
     const path = require('path');
     let pdpath= exports.store.get("pandocPath")
     console.log('2: pandoc='+ JSON.stringify(pdpath))
