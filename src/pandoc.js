@@ -60,7 +60,7 @@ exports.getPandocPath= async () => {
             inputPathYN =  await dialog.showMessageBox({
                 type: 'question',
                 icon: "assets/images/32x32.png",
-                message: "Pandoc was not found, -(\nIf indeed, Pandoc is  installed please supply path to the Pandoc Directory." ,
+                message: "Pandoc was not found, -(\nIf indeed, Pandoc is  installed please supply location of the Pandoc executable." ,
                 buttons: ["Supply Now", "Cancel"],
                 defaultId: 0, // bound to buttons array
                 cancelId:  1  // bound to buttons array
@@ -68,7 +68,7 @@ exports.getPandocPath= async () => {
             if(inputPathYN.response===0){
                 await ask4PandocDialog()
             } else {
-                console.log('hould reject pandoc')
+                console.log('should reject pandoc')
                 throw(Error('MISSING-PANDOC'))
             }
             return exports.getPandocPath() 
