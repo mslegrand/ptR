@@ -22,9 +22,9 @@ var confirmExit = false
 const killStr = ""
 const util = require('util');
 const pev=process.env;
-const R_LIBS_USER=pev.R_LIBS_USER
+var R_LIBS_USER=pev.R_LIBS_USER
 const testenv=pev.NO_EXIST
-
+var RSTUDIO_PANDOC=null
 //const { clipboard } = require('electron')
 //clipboard.writeText('Example String')
 //clipboard.writeText('Another Example String', 'clipboard');
@@ -42,17 +42,22 @@ const testenv=pev.NO_EXIST
 //Used to store rScript path and window dimensions
 const ExecPath=require("./src/execPath")
 
-
+console.log('-------------covid-25-----------------')
 const store = new Store({ 
   configName: 'user-preferences',
   os: process.platform
 })
 
+let initOpenFileQueue = [];
+pointRRunner.initOpenFileQueue=initOpenFileQueue;
 
 ExecPath.store=store
 pandoc.store=store
-//onsole.log('\nstore=\n'+JSON.stringify(store))
+//console.log('\nstore=\n'+JSON.stringify(store))
 const getRscriptPath =  require("./src/execPath").getRscriptPath //debugging only
+
+var path2lib = path.join(path.dirname(app.getAppPath()), 'library').replace(/\\/gi, '/')
+console.log('path2lib='+path2lib)
 
 
 
@@ -64,16 +69,17 @@ var loadingWindow=null
 var pointRProcess = pointRRunner.process
 var pointRWindow=null
 var userGuideWindow=null
+const nDirName = path.normalize(__dirname)
 
 //eventually may want to move this into pointRRunner
 function createPointRWindow(){
   let {width, height} = store.get('windowBounds')
   pointRWindow = new BrowserWindow({
-    icon: path.join(__dirname, 'build/icons/icon.icns'),
+    icon: path.join(nDirName, 'build/icons/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
       //zoomFactor: 1.Y0,
-      preload: __dirname + "/src/preloadPtr.js"   //"preload.js"
+      preload: path.join(nDirName , "src/preloadPtr.js" )  //"preload.js"
     },
     show: false,
     width: width,
@@ -84,7 +90,7 @@ function createPointRWindow(){
     console.log(new Date().toISOString() + '::pointRWindow loaded')
     setTimeout(() => {
       pointRWindow.show()
-      if (process.platform = MACOS) {
+      if (process.platform === MACOS) {
         pointRWindow.reload()
       }
       loadingWindow.hide()
@@ -96,7 +102,7 @@ function createPointRWindow(){
   //pointRWindow.setMenu(null)
   pointRWindow.setMenuBarVisibility(false)
   //pointRWindow.webContents.setZoomFactor(0.5)
-  //pointRWindow.webContents.openDevTools() // Open the DevTools for debugging
+  // pointRWindow.webContents.openDevTools() // Open the DevTools for debugging
   pointRWindow.on('close', function (event) {
     // console.log("pointRWindow::close event")
     // console.log("confirmExit=" + JSON.stringify(confirmExit))
@@ -122,7 +128,8 @@ function createPointRWindow(){
 //______________ >> ipcMain >> _______________________________________
 
 // note to self ----- probably want to keep all ipcMain in main.js 
-const { ipcMain } = require('electron')
+const { ipcMain } = require('electron');
+const { stringify } = require('querystring');
 
 ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
   // console.log('inside electron main ' + argPath + " " + argTabId)
@@ -171,10 +178,11 @@ ipcMain.on('cmdOpenWindow',
         title: "svgR User Guide",
         webPreferences: {
           nodeIntegration: false,
-          preload: __dirname + "/src/preloadUserGuide.js"
+          preload: path.join(nDirName , "src/preloadUserGuide.js")
         }
       })
-      userGuideWindow.loadURL(path.join('file:///',__dirname, 'assets', 'UserGuide.html'  ))
+      console.log('loading UserGuide...')
+      userGuideWindow.loadURL(path.join('file:///',nDirName, 'assets', 'UserGuide.html'  ))
       //userGuideWindow.loadFile(path.join(__dirname, 'assets', 'UserGuide.html'  ))
       userGuideWindow.setMenuBarVisibility(false)
       //userGuideWindow.webContents.openDevTools()
@@ -197,6 +205,18 @@ ipcMain.on('cmdStopAppRunner',
     }
   }
 )
+ipcMain.on('splashQuit', (event, arg1, arg2) => {
+  console.log(new Date().toISOString() + ':: ipcMain.on splashQuit')
+  // console.log(arg1 + 'arg2')
+  if(!!pkgR.kinder){
+    pkgR.kinder.kill()
+    pkgR.kinder=null
+  }
+  loadingWindow.hide()
+  loadingWindow.close()
+  cleanUpApplication()
+}
+)
 //______________    << ipcMain <<_______________________________________
 
 //______________    << startup <<_______________________________________
@@ -209,11 +229,51 @@ const asyncStartUpErr = async (title, mssg)=>{
   const rtv =await errorBox2( title, mssg)         
 }
 
-// start pointR webserver
-// ------->> tryStartPointRWebserver-------------
-const tryStartPointRWebserver = async () =>{
-  console.log('-->> tryStartPointRWebserver')
+//--->pkgLoader-----------
+const pkgLoader = async(loadingWindow) => {
+  console.log('\n Inside  pkgLoader \n')
 
+  console.log('\nprior to pkgR.missing\n')
+  // check for required packages
+  const missing = await pkgR.getMissing(loadingWindow) //returns array of missing
+  // console.log('post pkgR.missing')
+  // console.log('missing.length=', missing.length)
+  // console.log(JSON.stringify(missing))
+  // if (missing.length > 0) { // if some packages are missing , need to install them. 
+  //   console.log('about to ask if we should install')
+  //   const installNow =    await dialog.showMessageBox(
+  //     loadingWindow,
+  //     {
+  //       type: 'question',
+  //       message: "The following packages need to be installed :-(\n" +
+  //       JSON.stringify(missing) + "\n Install now?",
+  //       buttons: ["Install Now","Quit"],
+  //       defaultId: 0
+  //     }
+  //   )
+  //   //pkgR.ask2Install(missing) // query befor installing?
+  //   console.log("installNow=" + JSON.stringify(installNow ))
+  //   if (installNow.response===0) { // do the installations
+  //     console.log('\nAbout to enter installMissing')
+  //     const installedPkgDone = await pkgR.installMissing(loadingWindow, tryStartPointRWebserver)// run install Rscript
+  //     // console.log('typeof(installedPkgDone)='+ typeof(installedPkgDone))
+  //     // console.log("pkgDone="+ installedPkgDone.toString())
+  //     // tryStartPointRWebserver()
+  //     // console.log('\nCompleted installMissing')
+  //   } else {
+  //     console.log('about to throw install error')
+  //     throw 'cancel-install-error'
+  //   }
+    
+  // } else {
+  //   console.log('no missing packages')
+  //   tryStartPointRWebserver()
+  // }
+}
+
+//--->tryBoot Proc---------
+const tryBooting = async() =>{
+  console.log('-->> tryBooting')
   // check for R installation 
   const rversion  = await pkgR.rVersion()
   console.log('rversion='+rversion)
@@ -229,7 +289,7 @@ const tryStartPointRWebserver = async () =>{
   }
   const pdocOnpath = await pandoc.onPath(process.platform);
   console.log("pDocOnpath="+JSON.stringify(pdocOnpath))
-  var RSTUDIO_PANDOC
+  
   if(!pdocOnpath){
     pandocPath = await  pandoc.getPandocPath(); 
     console.log(JSON.stringify(pandocPath))
@@ -237,72 +297,85 @@ const tryStartPointRWebserver = async () =>{
   } else {
     RSTUDIO_PANDOC=null;
   }
-  
-  // check for required packages
-  const missing = await pkgR.missing() //returns array of missing
-  console.log('missing.length=', missing.length)
-  if (missing.length > 0) { // if some packages are missing , need to install them. 
-    var installNow = await pkgR.ask2Install() // query befor installing?
-    if (installNow) { // do the installations
-      //console.log('installNow')
-      await pkgR.installMissing(loadingWindow)// run install Rscript
+  pkgR.getInitialLibPaths().then( function(stdout){
+    var libPaths=stdout.toString()
+    console.log("libPaths="+libPaths)
+    if(!!R_LIBS_USER){
+      R_LIBS_USER=libPaths+";"+R_LIBS_USER
     } else {
-      throw 'cancel-install-error'
+      R_LIBS_USER=libPaths
     }
-  }
+    //await pkgLoader(loadingWindow)
+    pkgR.installMissing(loadingWindow,  tryStartPointRWebserver )
+  })
+  
+}
 
-  
-  
+// start pointR webserver
+// ------->> tryStartPointRWebserver-------------
+const tryStartPointRWebserver = async (loadingWindow) =>{
+  console.log('-->> tryStartPointRWebserver')
 
   // use R cmd 'pandoc_available(version=NULL, error)
   // if RStudio is installed can use Sys.getenv("RSTUDIO_PANDOC") to find
   // ow. download and install from https://pandoc.org/installing.html
 
-  // finally spawn pointRProcess
-  //var path2lib = path.join(__dirname,  'assets', 'library')
-  var path2lib = path.join(path.dirname(app.getAppPath()), 'library')
-  // console.log('path2lib='+path2lib)
-
+  console.log('prior to pointRRunner.startPointRProcess')
+  console.log('----path2lib='+JSON.stringify(path2lib))
+  console.log('----R_LIBS_USER'+JSON.stringify(R_LIBS_USER))
+  console.log('----RSTUDIO_PANDOC'+JSON.stringify(RSTUDIO_PANDOC))
   pointRRunner.startPointRProcess(path2lib, R_LIBS_USER, RSTUDIO_PANDOC)
-  //console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
+  console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
   let alive=false;
-  // console.log('about to loop')
+  console.log('about to loop')
   
-
   for( let i=0;  i<10; i++){
     //await waitFor(500);
-    //console.log('inside loop')
-    //console.log('i='+i);
+    console.log('inside loop')
+    console.log('i='+i);
     alive= await portHelper.isAlive( pointRRunner.port)
-    // if(!alive){ } //message with i
+     if(!alive){ } //message with i
     if(alive){ break}
   }
-  // console.log('end of loop')
-  // console.log('finally alive='+alive)
+   console.log('end of loop')
+   console.log('finally alive='+alive)
   if(!alive){
     throw('dead')
   } 
-  
+  await portHelper.isAlive(pointRRunner.port )
+  createPointRWindow( )
   return('success')
 } 
 // -------<< tryStartPointRWebserver-------------
+
+if(process.platform === MACOS){
+  app.on('will-finish-launching', () => { // for mac, this occurs prior to ready
+    console.log('will-finish-launching')
+    app.on("open-file", (event, file) => {
+      if (app.isReady() === false) {
+        initOpenFileQueue.push(file);
+      } 
+    })
+  })
+}
 
 
 // ------>> app.on('ready')-------------------
 // this is where we invoke the startup
 app.on('ready', async () => {
+  console.log('ready')
   // launch loading browser 
   loadingWindow = new BrowserWindow({
     show: false, frame: false,
     //icon: path.join(__dirname, 'build/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
-      preload: __dirname + "/src/preloadLoader.js"   //"preload.js"
+      preload: path.join(nDirName , "src/preloadLoader.js")   //"preload.js"
     },
     width: 750, height: 400, title: 'svgR User Guide'
   })
   //console.log(new Date().toISOString() + '::showing loading');
-  loadingWindow.loadURL(`file://${__dirname}/src/splash.html`);
+  loadingWindow.loadURL(`file://${nDirName}/src/splash.html`);
   //loadingWindow.webContents.openDevTools()  //for debugging only
   loadingWindow.once('show', async () => {
     var abortStartUp=null;
@@ -311,6 +384,10 @@ app.on('ready', async () => {
       console.log('--->>loading once try')
       
       execPath= await getRscriptPath()
+      if(execPath.indexOf(' ')>0){
+        execPath=`\"${execPath}\"`
+      }
+      
       loadingWindow.webContents.send('updateSplashTextBox', {msg: 'Rscript located'});
       await async function(){
         console.log("00 execPath="+ execPath)
@@ -320,12 +397,11 @@ app.on('ready', async () => {
         console.log('01 pkgR.execPath='+ pkgR.execPath)
       }()
 
-      await tryStartPointRWebserver()
+      await tryBooting()
       //console.log('calling createPointRWindow')
       // wait for webServer() here
-      await portHelper.isAlive(pointRRunner.port )
-      createPointRWindow( )
-      
+      // await portHelper.isAlive(pointRRunner.port )
+      // createPointRWindow( )
     
     } 
     catch( err){
@@ -336,44 +412,32 @@ app.on('ready', async () => {
         loadingWindow.hide()
         loadingWindow.close()
         cleanUpApplication()
-      },1000) //die after 5 seconds
-    } 
-    if(!!abortStartUp){
+      },3000) //die after 5 seconds
       console.log('abortStartup')
-      console.log('founds err is:'+abortStartUp)
-      // let result="R was not found!<br>ABORTING..."
-      // loadingWindow.webContents.send('updateSplashTextBox', {msg: "R was not found!<br>ABORTING..."});
+      console.log('found err is:'+abortStartUp)
       if(abortStartUp==='R-not-found'){
-        console.log('founds err is:'+abortStartUp)
+        console.log('found err is:'+abortStartUp)
          let result="R was not found!<br>ABORTING..."
          loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
-        await asyncStartUpErr( "Aborting", "Rscript Load Error Have you installed R?")
       } else if (abortStartUp==='cancel-install-error'){
         let result="Package installation canceled<br>ABORTING..."
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
-        await asyncStartUpErr( "Aborting", "Package Installation Aborted by User")
       } else if (abortStartUp==='dead'){
         let result="Cannot estabish pointR-server connection<br>ABORTING..."
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
-        await asyncStartUpErr( "Aborting", "Cannot estabish pointR-server")
         console.log('loading window once '+ abortStartUp)
       } else if(abortStartUp.name == 'BAD-R-VERSION'){
         let result = 'R version is '+ abortStartUp.message + '. Please upgrade R to 3.5.3 or greater' 
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
-        await asyncStartUpErr( "Aborting", result)
       } else if(abortStartUp.name == 'MISSING-PANDOC'){
         let result = 'Unable to locate Pandoc \n Please install and place on your PATH.\n'+
         'Pandoc is available at "https://pandoc.org/installing.html" '
         loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
-        await asyncStartUpErr( "Aborting", result)
+      } else {
+        let result=abortStartUp.toString()
+        loadingWindow.webContents.send('updateSplashTextBox', {msg: result});
       }
     }
-    // setTimeout(() => {
-    //   console.log('and here')
-    //   loadingWindow.hide()
-    //   loadingWindow.close()
-    //   cleanUpApplication()
-    // },100) //die after 5 seconds
   })
   loadingWindow.show()
   loadingWindow.webContents.send('updateSplashTextBox', {msg: 'hello'});

@@ -11,6 +11,7 @@ cp -rf $libPath/pointR .
 cp -rf $libPath/shinyDMDMenu .
 cp -rf $libPath/shinyjqui .
 cp -rf $libPath/rowPicker .
+cp -rf $libPath/shinyAce .
 popd
 rm -rf ../library
 cp -rf ./assets/library ..

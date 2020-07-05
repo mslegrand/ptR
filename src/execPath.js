@@ -49,11 +49,33 @@ inputRscriptLocationYN = function() {
 exports.getRscriptPath= async function(){
     const path = require('path');
     rscriptPath= exports.store.get("rscriptPath")
-    console.log('2: rscriptPath='+ JSON.stringify(rscriptPath))
-    if( fs.existsSync(rscriptPath)  
+    // let tScriptPath=rscriptPath
+    let dbgMssg= 'Trying rscriptPath='+ JSON.stringify(rscriptPath);
+    console.log(dbgMssg)
+    //loadingWindow.webContents.send('updateSplashTextBox', {msg: dbgMsg});
+    let dbgMssg2=`Checking if  Rscript==${JSON.stringify(path.basename(rscriptPath, path.extname(rscriptPath)))}`
+    console.log(dbgMssg2)
+    let equalTst= ('Rscript'===path.basename(rscriptPath,path.extname(rscriptPath)))
+    if(equalTst){
+        console.log('the Rscripts are equal')
+    } else {
+        console.log('the Rscripts are NOT equal')
+    }
+    let rscriptExists = fs.existsSync(rscriptPath)
+    console.log('result of fs.existsSync(rscriptPath)=' + JSON.stringify(rscriptExists))
+
+    // if(tScriptPath.indexOf(' ')>0){
+    //     tScriptPath=`\\"${tScriptPath}\\"`
+    // }
+
+    // tScriptExists = fs.existsSync(tScriptPath)
+    // console.log('result of fs.existsSync(tScriptPath)=' + JSON.stringify(tScriptExists))
+    //loadingWindow.webContents.send('updateSplashTextBox', {msg: dbgMsg2});
+    if( !!rscriptExists 
         && //add check for name ??
-        'Rscript'===path.basename(rscriptPath,path.extname(rscriptPath))
+        equalTst
     ){ 
+        console.log( 'returning rscriptpath=' +  JSON.stringify(rscriptPath))
         return  rscriptPath  
     } else {
         console.log('inside else')

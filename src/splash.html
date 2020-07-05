@@ -24,20 +24,44 @@ body {
   display: table;
   clear: both;
 }
+.buttonBye {
+  background-color: #AA0000; 
+  color: #FFFFFF;
+}
 </style>
+      <script>
+          const { ipcRenderer } = require('electron');
+          const function die(){  
+               //var window = remote.getCurrentWindow();
+                //window.close();
+              //alert('Hello world!');
+              //alert('killLoading');
+              //ipcRenderer.send('splashQuit', 'kill');
+          };
+      </script>
   </head>
   <body >
     
     <!-- All of the Node.js APIs are available in this renderer process. -->
-
+     <button id='killLoading' type="button" class="buttonBye"> 
+         TO CANCEL / KILL PRESS HERE ...</button>
      <div class="row">
-   <div id="splashTextBox" class="column" style="height:360px;width:
-   300px;overflow:auto;background-color:#2200AA;color:white;scrollbar-base-color:gold;font-family:sans-serif;padding:10px;">
-   Loading pointR ...
-   </div>
-<div class="column">
-     
-  <img src="../assets/images/gears.svg">
-    </div>
-      </body>
+         <div>
+             
+           <div id="splashTextBox" class="column" style="height:360px;width:
+           300px;overflow:auto;background-color:#2200AA;color:white;scrollbar-base-color:gold;font-family:sans-serif;padding:10px;">
+           Loading pointR ...
+           </div>
+         </div>
+         
+           <div class="column"> 
+               <img src="../assets/images/gears.svg">
+           </div>
+   </body>
+      <script>
+          document.getElementById('killLoading').addEventListener('click', function(){
+             ipcRenderer.send('splashQuit', 'kill');
+          }
+                                                                 )
+      </script>
 </html>

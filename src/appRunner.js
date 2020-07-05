@@ -2,7 +2,8 @@
  const WINDOWS = "win32"
  const LINUX   = "linux"
 
-const child      = require('child_process')
+//const child      = require('child_process')
+const child = require('cross-spawn');
 const portHelper = require('./portHelper')
 
 exports.execPath=""

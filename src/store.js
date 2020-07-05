@@ -3,21 +3,44 @@
 const electron = require('electron');
 const path = require('path');
 const fs = require('fs');
-
+const child = require('child_process');
 const MACOS = "darwin"
 const WINDOWS = "win32"
 const LINUX = "linux"
 
 var getDefaultPath_Rscript = (os) => {
-  if(os===MACOS){ return '/usr/local/bin/Rscript' }
+  if(os===MACOS){ 
+    // let ecmd= 'find /Users/sup/test -name dog.txt'
+    // let stdout = child.execSync(ecmd)
+    // stdout=stdout.toString().split(/(?:\r\n|\r|\n)/g);
+    // if(stdout.length>0){
+    //   stdout=stdout[0]
+    // }
+    // console.log('stdout='+JSON.stringify(stdout))
+    // if (!(stdout instanceof Buffer)) {
+    //   console.log('stdout not instance of not a instanceof Buffer');
+    // }
+    // console.log('stdout.length='+JSON.stringify(stdout.length))
+    return '/usr/local/bin/Rscript' 
+  }
   else if (os===LINUX){return '/usr/bin/Rscript' }
-  else return 'C:\\program Files\\R\\Rscript.exe'
+  else if (os===WINDOWS){
+    let ecmd= 'cd "C:\\Program Files\\R" && dir/s/B Rscript.exe'
+    let stdout = child.execSync(ecmd)
+    stdout=stdout.toString().split(/(?:\r\n|\r|\n)/g); 
+    if(stdout.length>0){
+      stdout=stdout[0]
+    }
+    console.log('stdout='+JSON.stringify(stdout))
+    return stdout
+  }
+  else {return ""}
 }
 
 var getDefaultPath_PANDOC = (os)=>{
   if(os===MACOS){ return "/Applications/RStudio.app/Contents/MacOS/pandoc" }
   else if (os===LINUX){return "/usr/lib/rstudio/bin/pandoc" }
-  else return "/c/Program Files/RStudio/bin/pandoc"
+  else return "/Program Files/RStudio/bin/pandoc"
 }
 
 var getStoreDefaults = (os) => {

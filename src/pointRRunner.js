@@ -3,7 +3,9 @@ const MACOS   = "darwin"
 const WINDOWS = "win32"
 const LINUX   = "linux"
 
-const child      = require('child_process')
+//const child      = require('child_process')
+const child      = require('cross-spawn')
+
 const portHelper = require('./portHelper')
   
 const os         = require('os')     
@@ -14,6 +16,7 @@ const fs         = require('fs')
 exports.execPath=null
 exports.port=null
 exports.process  = null
+exports.initOpenFileQueue = []
 //exports.window   = null
 
 var getPtRVersion=function (path2lib){
@@ -46,26 +49,36 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC)=>{
   var ptR_Version = getPtRVersion (path2lib); //!!! probably not needed here
   console.log('pathptR_Version=' + JSON.stringify(ptR_Version));
   
-  var erLib = path2lib; 
+  var erLib = path2lib+";"+R_LIBS_USER; 
   var libShinyCmd     = "library('shiny');library('pointR');";
-  var optionsCmd  = "shiny::shinyOptions(electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + os.homedir() + "');";
+  const HOME =  os.homedir().replace(/\\/gi, '/')
+  var optionsCmd  = "shiny::shinyOptions(electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + HOME + "');";
   var libPathCmd="";
   var path2pointR="";
 
    //todo add R_LIBS_USER to libPathCmd
-  if( !!R_LIBS_USER && fs.existsSync(R_LIBS_USER) ){
-    libPathCmd  = ".libPaths(unique(c(Sys.getenv('E_LIB'),  Sys.getenv('R_LIBS_USER'), .libPaths() )));"
-  } else {
-    libPathCmd  = ".libPaths(c(Sys.getenv('E_LIB'), .libPaths()));"
-  }
+  var libPathCmd= ".libPaths(unlist(strsplit(Sys.getenv('E_LIB'), ';'))); "
+  
+  // if( !!R_LIBS_USER && fs.existsSync(R_LIBS_USER) ){
+  //   libPathCmd  = ".libPaths(unique(c(Sys.getenv('E_LIB'),  Sys.getenv('R_LIBS_USER'), .libPaths() )));"
+  //   console.log('!!R_LIBS_USER')
+  // } else {
+  //   libPathCmd  = ".libPaths(c(Sys.getenv('E_LIB'), .libPaths()));"
+  //   console.log('--R_LIBS_USER')
+  // }
 
- 
+
+  //libPathCmd  = ".libPaths(c(Sys.getenv('E_LIB'), "+ R_LIBS_USER +");"
+  //console.log( 'libPathCmd='+libPathCmd)
+  
+
+ console.log('R_LIB_USER====='+ JSON.stringify(R_LIBS_USER))
   
   var hbCmd =  "host = '127.0.0.1', launch.browser = FALSE," 
   //var runPtrCmd = "shiny::runApp(Sys.getenv('E_PTR_PATH'), " + hbCmd +"  port = as.integer(Sys.getenv('E_PTR_PORT')) )"
   var runPtrCmd = "shiny::runApp(system.file('App', package = 'pointR'), " + hbCmd +"  port = as.integer(Sys.getenv('E_PTR_PORT')) )"
   var processCmd  = libPathCmd + libShinyCmd + optionsCmd + runPtrCmd;
-
+  // processCmd  =  "print(.libPaths())"
  
 
   /* //alternatively
@@ -100,12 +113,29 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC)=>{
     //'E_PTR_PATH':  path2pointR,
     'E_PTR_PORT':  exports.port,
     'E_LIB': erLib,
-    'HOME': os.homedir(),
+    'HOME': os.homedir().replace(/\\/gi, '/'),
     'R_LIBS_USER': R_LIBS_USER
-  }
+  } 
+
+  console.log('****  env.E_PTR_PORT='+env.E_PTR_PORT)
+  console.log('****  env.E_LIB='+env.E_LIB)
+  console.log('****  env.HOME='+env.HOME)
+  console.log('****  env.R_LIBS_USER='+env.R_LIBS_USER)
+  /*
   if(!! RSTUDIO_PANDOC){
     env.RSTUDIO_PANDOC = RSTUDIO_PANDOC;
   }
+  if(exports.initOpenFileQueue.length>0 ){
+    console.log('>        initOpenFileName > 0')
+    let pointRProject = exports.initOpenFileQueue[0]
+    console.log('pointRProject='+ pointRProject)
+    env.initialPointRProject=pointRProject
+    exports.initOpenFileQueue=[]
+  } else {
+    console.log('>        initOpenFileName  is EMPTY')
+  }
+
+  */
   exports.process = child.spawn(exports.execPath, ["-e", processCmd], {env: env});
   
   exports.process.stdout.on('data', (data) => {

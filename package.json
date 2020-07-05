@@ -71,8 +71,8 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "clipboard": "^2.0.4",
-    "electron": "^8.2.3",
-    "electron-builder": "^22.4.1"
+    "electron": "^8.3.1",
+    "electron-builder": "^22.7.0"
   },
   "bugs": {
     "url": "https://github.com/mslegrand/pointRDeployR/issues"
@@ -80,9 +80,11 @@
   "homepage": "https://github.com/mslegrand/pointRDeployR#readme",
   "dependencies": {
     "axios": "^0.19.2",
-    "chokidar": "^3.0.2",
+    "chokidar": "^3.4.0",
+    "cross-spawn": "^7.0.3",
     "electron-find": "^1.0.5",
     "electron-version": "^2.0.1",
+    "normalize-path": "^3.0.0",
     "replace-string": "^2.0.0"
   }
 }
