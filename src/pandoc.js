@@ -49,13 +49,9 @@ ask4PandocDialog = async ()=>{
 exports.getPandocPath= async () => {  
     const path = require('path');
     let pdpath= exports.store.get("pandocPath")
-    // let tpdpath=pdpath
-    // if(tpdpath.indexOf(' ')>0){
-    //     tpdpath=`\"${tpdpath}\"`
-    // }
+    
     console.log('22: pandoc='+ JSON.stringify(pdpath))
-    // console.log('23: pandoc='+ JSON.stringify(tpdpath))
-    // console.log("fs.existsSync(tpdpath)="+fs.existsSync(tpdpath))
+
     console.log("fs.existsSync(pdpath)="+fs.existsSync(pdpath))
     console.log("path.basename(pdpath,path.extname(pdpath))="+path.basename(pdpath,path.extname(pdpath)))
     if( fs.existsSync(pdpath)  &&

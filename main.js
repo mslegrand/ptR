@@ -2,7 +2,7 @@
 // https://github.com/ksasso/useR_electron_meet_shiny
 // https://github.com/dirkschumacher/r-shiny-electron
 
-//require('electron-reload')(__dirname) //convenient
+//require('electron-reload')(__dirname) //convenient for devel
 //const chokidar = require("chokidar");
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
@@ -183,7 +183,7 @@ ipcMain.on('cmdOpenWindow',
       })
       console.log('loading UserGuide...')
       userGuideWindow.loadURL(path.join('file:///',nDirName, 'assets', 'UserGuide.html'  ))
-      //userGuideWindow.loadFile(path.join(__dirname, 'assets', 'UserGuide.html'  ))
+      
       userGuideWindow.setMenuBarVisibility(false)
       //userGuideWindow.webContents.openDevTools()
       userGuideWindow.once( 'ready-to-show', ()=> {userGuideWindow.show()})
@@ -206,7 +206,7 @@ ipcMain.on('cmdStopAppRunner',
   }
 )
 ipcMain.on('splashQuit', (event, arg1, arg2) => {
-  console.log(new Date().toISOString() + ':: ipcMain.on splashQuit')
+  // console.log(new Date().toISOString() + ':: ipcMain.on splashQuit')
   // console.log(arg1 + 'arg2')
   if(!!pkgR.kinder){
     pkgR.kinder.kill()
@@ -236,39 +236,8 @@ const pkgLoader = async(loadingWindow) => {
   console.log('\nprior to pkgR.missing\n')
   // check for required packages
   const missing = await pkgR.getMissing(loadingWindow) //returns array of missing
-  // console.log('post pkgR.missing')
-  // console.log('missing.length=', missing.length)
-  // console.log(JSON.stringify(missing))
-  // if (missing.length > 0) { // if some packages are missing , need to install them. 
-  //   console.log('about to ask if we should install')
-  //   const installNow =    await dialog.showMessageBox(
-  //     loadingWindow,
-  //     {
-  //       type: 'question',
-  //       message: "The following packages need to be installed :-(\n" +
-  //       JSON.stringify(missing) + "\n Install now?",
-  //       buttons: ["Install Now","Quit"],
-  //       defaultId: 0
-  //     }
-  //   )
-  //   //pkgR.ask2Install(missing) // query befor installing?
-  //   console.log("installNow=" + JSON.stringify(installNow ))
-  //   if (installNow.response===0) { // do the installations
-  //     console.log('\nAbout to enter installMissing')
-  //     const installedPkgDone = await pkgR.installMissing(loadingWindow, tryStartPointRWebserver)// run install Rscript
-  //     // console.log('typeof(installedPkgDone)='+ typeof(installedPkgDone))
-  //     // console.log("pkgDone="+ installedPkgDone.toString())
-  //     // tryStartPointRWebserver()
-  //     // console.log('\nCompleted installMissing')
-  //   } else {
-  //     console.log('about to throw install error')
-  //     throw 'cancel-install-error'
-  //   }
-    
-  // } else {
-  //   console.log('no missing packages')
-  //   tryStartPointRWebserver()
-  // }
+  
+
 }
 
 //--->tryBoot Proc---------
