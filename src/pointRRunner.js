@@ -121,7 +121,7 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC)=>{
   console.log('****  env.E_LIB='+env.E_LIB)
   console.log('****  env.HOME='+env.HOME)
   console.log('****  env.R_LIBS_USER='+env.R_LIBS_USER)
-  /*
+  
   if(!! RSTUDIO_PANDOC){
     env.RSTUDIO_PANDOC = RSTUDIO_PANDOC;
   }
@@ -135,7 +135,7 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC)=>{
     console.log('>        initOpenFileName  is EMPTY')
   }
 
-  */
+  
   exports.process = child.spawn(exports.execPath, ["-e", processCmd], {env: env});
   
   exports.process.stdout.on('data', (data) => {
