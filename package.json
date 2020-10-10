@@ -1,6 +1,6 @@
 {
   "name": "ptr",
-  "version": "0.4.01",
+  "version": "0.4.4",
   "description": "IDE for svgR",
   "main": "main.js",
   "scripts": {
@@ -39,18 +39,18 @@
         "deb"
       ],
       "category": "graphics",
-      "icon": "build/icons/mac/icon.icns",
+      "icon": "assets/icons/mac/icon.icns",
       "forceCodeSigning": false
     },
     "mac": {
       "target": "dmg",
       "category": "graphics",
-      "icon": "build/icons/mac/icon.icns",
+      "icon": "assets/icons/mac/icon.icns",
       "forceCodeSigning": false
     },
     "win": {
       "target": "nsis",
-      "icon": "build/icons/win/icon.ico",
+      "icon": "assets/icons/win/icon.ico",
       "forceCodeSigning": false
     }
   },

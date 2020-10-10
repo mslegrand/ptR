@@ -3,7 +3,7 @@
 // https://github.com/dirkschumacher/r-shiny-electron
 
 //require('electron-reload')(__dirname) //convenient for devel
-//const chokidar = require("chokidar");
+// const chokidar = require("chokidar"); //USE FOR EXTERNAL FILE UPDATE 
 const { app, BrowserWindow,  dialog, shell } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
@@ -17,6 +17,7 @@ const child = require('child_process')
 const MACOS = "darwin"
 const WINDOWS = "win32"
 const LINUX = "linux"
+const fileWatcher=require('./src/fileWatcher')
 var confirmExit = false
 //const killStr = "taskkill /im Rscript.exe /f"
 const killStr = ""
@@ -31,6 +32,87 @@ var RSTUDIO_PANDOC=null
 //clipboard.write({ text: 'test', html: '<b>test</b>' })
 //console.log(clipboard.readText('selection'))
 
+var wPath="/Users/sup/AA/mysillychart"
+wPath=""
+//fileWatcher.startWatcher(wPath)
+var chokidar = require("chokidar");
+
+var watchSize=0;
+var watchMtime={};
+var watcher = null;
+watcher=chokidar.watch("./*", {
+    ignored: /[\/\\]\./,
+    persistent: true,
+    ignoreInitial: true,
+    alwaysStat: true
+});
+
+
+resetWatcher = async ( listToWatch)=>{
+  // console.log('inside resetWatcher')
+  // console.log(JSON.stringify( listToWatch))
+       var watchedPaths = watcher.getWatched();
+       if(watchedPaths.length>0){
+        await watcher.unwatch(watchedPaths); //removes watched files
+       }
+      //  console.log('unwatched')
+       watcher.add(listToWatch); // adds new fileList 
+       var watch_Mtime={};
+      //  console.log('typeof(listToWatch)='+typeof(listToWatch))
+       if(typeof(listToWatch)=='string'){
+        listToWatch=[listToWatch]
+       }
+      //  console.log('listToWatch.length='+listToWatch.length)
+      //  console.log('typeof(listToWatch)='+typeof(listToWatch))
+      //  console.log('listToWatch='+JSON.stringify(listToWatch))
+       if(typeof(listToWatch)==='object' && listToWatch.length>0){
+          listToWatch.forEach(function(path){
+            console.log('path='+JSON.stringify(path))
+            stats=fs.statSync(path)
+            watch_Mtime[path]=stats.mtimeMs;
+          }
+       )}
+      //  console.log('---watch_Mtime='+JSON.stringify(watch_Mtime))
+       watchMtime=watch_Mtime;
+       return watch_Mtime;
+  }
+
+
+
+
+
+watcher.on('change', function(path, stats) {
+  // send message to ptR that  path has changed
+  console.log('pre file change:'+JSON.stringify(path))
+  
+  
+  //console.log(JSON.stringify(watchMtime))
+  if(typeof watchMtime[path] == 'undefined'){
+    watchMtime[path]=stats.mtime;
+  }
+  // console.log("stats.mtime"+JSON.stringify(stats.mtime))
+  // console.log("watchMtime[path]"+JSON.stringify(watchMtime[path]))
+  if(watchMtime[path]<stats.mtime){
+    watchMtime[path]=stats.mtime
+    watchSize = stats.size;
+    // console.log('Sending to pointR: File', path, 'has been changed');
+    pointRWindow.webContents.send('fileChanged',path)
+  }
+  
+})
+.on('unlink', function(path) {
+  // send mmessage to ptR that path has been removed
+  pointRWindow.webContents.send('fileDeleted',path)
+  //  console.log('File', path, 'has been removed');
+})
+.on('unlinkDir', function(path) {
+  // send mmessage to ptR that path has been removed
+  // pointRWindow.webContents.send('pathDeleted',path)
+   console.log('Directory', path, 'has been removed');
+})
+.on('error', function(error) {
+   console.log('Error happened', error);
+})
 
 //var content = "Text that will be now on the clipboard as text";
 //clipboard.writeText('hello');
@@ -42,7 +124,7 @@ var RSTUDIO_PANDOC=null
 //Used to store rScript path and window dimensions
 const ExecPath=require("./src/execPath")
 
-console.log('-------------covid-25-----------------')
+console.log('-------------covid-29-----------------')
 const store = new Store({ 
   configName: 'user-preferences',
   os: process.platform
@@ -131,9 +213,33 @@ function createPointRWindow(){
 const { ipcMain } = require('electron');
 const { stringify } = require('querystring');
 
-ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
+
+ipcMain.on('resetWatcher', (event, arg1) => {
+  console.log('inside electron main resetWatcher: ' + JSON.stringify(arg1 ))
+    try{
+      tmp=resetWatcher(arg1).then({ })
+      
+      console.log('after resetWatcher')
+      //console.log('tmp='+JSON.stringify(tmp));
+      //watchMtime=tmp
+      console.log(JSON.stringify(watchMtime));
+    } catch(err){
+      asyncStartUpErr('Aborting', 'Failed to start watcher')
+      pointRWindow.webContents.send('appRunner', 'unloaded', '');
+      if(!!appRunner.window){
+        appRunner.window.close()
+      }
+      if(!!appRunner.process){
+        appRunner.process.kill()
+        appRunner.process=null
+      }
+    }
+})
+
+ipcMain.on('cmdAppRun', (event, arg1, arg2) => {
   // console.log('inside electron main ' + argPath + " " + argTabId)
     try{
+      // arg1 is the list of paths to watch
       appRunner.launch(argPath, argTabId, pointRWindow)
     } catch(err){
       asyncStartUpErr('Aborting', 'Failed to start App')
@@ -181,7 +287,7 @@ ipcMain.on('cmdOpenWindow',
           preload: path.join(nDirName , "src/preloadUserGuide.js")
         }
       })
-      console.log('loading UserGuide...')
+      // console.log('loading UserGuide...')
       userGuideWindow.loadURL(path.join('file:///',nDirName, 'assets', 'UserGuide.html'  ))
       
       userGuideWindow.setMenuBarVisibility(false)
@@ -197,7 +303,7 @@ ipcMain.on('cmdStopAppRunner',
     // console.log(new Date().toISOString() + ':: ipcMain.on cmdStopAppRunner')
     // console.log(arg1 + 'arg2')
     if (!!appRunner.window) {
-      console.log('!!cmdStopAppRunner==true')
+      // console.log('!!cmdStopAppRunner==true')
       appRunner.window.close()
       appRunner.window=null //?
     } else{
@@ -245,6 +351,7 @@ const tryBooting = async() =>{
   console.log('-->> tryBooting')
   // check for R installation 
   const rversion  = await pkgR.rVersion()
+  // const tmp=await fileWatcher.resetWatch(watcher, ["/Users/sup/AA/mysillychart"]);
   console.log('rversion='+rversion)
   if(rversion=='quit'){
     console.log('throwing quit')
@@ -334,6 +441,7 @@ if(process.platform === MACOS){
 app.on('ready', async () => {
   console.log('ready')
   // launch loading browser 
+  //await resetWatch( [ "/Users/sup/AA/mysillychart" ] )
   loadingWindow = new BrowserWindow({
     show: false, frame: false,
     //icon: path.join(__dirname, 'build/icon.icns'),
