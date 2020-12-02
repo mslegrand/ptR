@@ -4,7 +4,7 @@
 
 //require('electron-reload')(__dirname) //convenient for devel
 // const chokidar = require("chokidar"); //USE FOR EXTERNAL FILE UPDATE 
-const { app, BrowserWindow,  dialog, shell } = require('electron')
+const { app, BrowserWindow,  dialog, shell, globalShortcut } = require('electron')
 const Store=require('./src/store.js')
 const path = require('path')
 const fs         = require('fs');
@@ -14,6 +14,8 @@ const pointRRunner = require('./src/pointRRunner')
 const pandoc = require('./src/pandoc')
 const pkgR = require('./src/pkgHelpR')
 const child = require('child_process')
+const log = require('electron-log');
+//const userGuide=require('./src/userGuide')
 const MACOS = "darwin"
 const WINDOWS = "win32"
 const LINUX = "linux"
@@ -25,7 +27,18 @@ const util = require('util');
 const pev=process.env;
 var R_LIBS_USER=pev.R_LIBS_USER
 const testenv=pev.NO_EXIST
-var RSTUDIO_PANDOC=null
+var RSTUDIO_PANDOC=null;
+// log.info( "argv="+JSON.stringify(process.argv));
+var initialPointRProject=null;
+if(process.os==WINDOWS){
+  if (process.argv[1]&&process.argv[1].indexOf('-')==0) process.argv.unshift('')
+  initialPointRProject=process.argv[1];
+} else {
+
+}
+
+// console.log('initialPointRProject='+JSON.stringify(initialPointRProject));
+
 //const { clipboard } = require('electron')
 //clipboard.writeText('Example String')
 //clipboard.writeText('Another Example String', 'clipboard');
@@ -160,6 +173,7 @@ function createPointRWindow(){
     icon: path.join(nDirName, 'build/icons/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
+      //contextIsolation: false,
       //zoomFactor: 1.Y0,
       preload: path.join(nDirName , "src/preloadPtr.js" )  //"preload.js"
     },
@@ -181,7 +195,7 @@ function createPointRWindow(){
   }) //webcContents 
   console.log('pointRWindow port='+ pointRRunner.port)
   pointRWindow.loadURL('http://127.0.0.1:' + pointRRunner.port)
-  //pointRWindow.setMenu(null)
+  pointRWindow.setMenu(null)
   pointRWindow.setMenuBarVisibility(false)
   //pointRWindow.webContents.setZoomFactor(0.5)
   // pointRWindow.webContents.openDevTools() // Open the DevTools for debugging
@@ -236,8 +250,9 @@ ipcMain.on('resetWatcher', (event, arg1) => {
     }
 })
 
-ipcMain.on('cmdAppRun', (event, arg1, arg2) => {
-  // console.log('inside electron main ' + argPath + " " + argTabId)
+ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
+  console.log('inside electron main: cmdAppRun ')
+   console.log('inside electron main ' + argPath + " " + argTabId)
     try{
       // arg1 is the list of paths to watch
       appRunner.launch(argPath, argTabId, pointRWindow)
@@ -278,23 +293,8 @@ ipcMain.on('cmdOpenLink',
 ipcMain.on('cmdOpenWindow',
   (event, arg1, arg2) => {
     console.log(new Date().toISOString() + ':: ipcMain.on cmdOpenWindow')
-    if(!userGuideWindow && arg1=='svgRUserGuide'){
-      userGuideWindow = new BrowserWindow({
-        width:1000, height:600, show: false,
-        title: "svgR User Guide",
-        webPreferences: {
-          nodeIntegration: false,
-          preload: path.join(nDirName , "src/preloadUserGuide.js")
-        }
-      })
-      // console.log('loading UserGuide...')
-      userGuideWindow.loadURL(path.join('file:///',nDirName, 'assets', 'UserGuide.html'  ))
-      
-      userGuideWindow.setMenuBarVisibility(false)
-      //userGuideWindow.webContents.openDevTools()
-      userGuideWindow.once( 'ready-to-show', ()=> {userGuideWindow.show()})
-      userGuideWindow.on('closed', ()=>{userGuideWindow=null})      
-    }
+    //userGuide.launch(arg1);
+    newUserGuideWindow(arg1);
   }
 )
 
@@ -400,7 +400,7 @@ const tryStartPointRWebserver = async (loadingWindow) =>{
   console.log('----path2lib='+JSON.stringify(path2lib))
   console.log('----R_LIBS_USER'+JSON.stringify(R_LIBS_USER))
   console.log('----RSTUDIO_PANDOC'+JSON.stringify(RSTUDIO_PANDOC))
-  pointRRunner.startPointRProcess(path2lib, R_LIBS_USER, RSTUDIO_PANDOC)
+  pointRRunner.startPointRProcess(path2lib, R_LIBS_USER, RSTUDIO_PANDOC, initialPointRProject);
   console.log(' pointRRunner.port='+  JSON.stringify(pointRRunner.port));
   let alive=false;
   console.log('about to loop')
@@ -429,7 +429,8 @@ if(process.platform === MACOS){
     console.log('will-finish-launching')
     app.on("open-file", (event, file) => {
       if (app.isReady() === false) {
-        initOpenFileQueue.push(file);
+        //initOpenFileQueue.push(file);
+        initialPointRProject=file
       } 
     })
   })
@@ -447,6 +448,7 @@ app.on('ready', async () => {
     //icon: path.join(__dirname, 'build/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
+      //contextIsolation: false,
       preload: path.join(nDirName , "src/preloadLoader.js")   //"preload.js"
     },
     width: 750, height: 400, title: 'svgR User Guide'
@@ -530,6 +532,44 @@ app.on('activate', function () {
     createPointRWindow()
   }
 })
+
+function newUserGuideWindow(arg1) {
+  if (!userGuideWindow && arg1 == 'svgRUserGuide') {
+    userGuideWindow = new BrowserWindow({
+      width: 1000, height: 600, show: false,
+      title: "svgR User Guide",
+
+      webPreferences: {
+        nodeIntegration: true,
+        enableRemoteModule: true,
+
+        //contextIsolation: false,
+        defaultFontFamily: 'Times New Roman',
+        preload: path.join(nDirName, "src/preloadUserGuide.js")
+      }
+    });
+    // console.log('loading UserGuide...')
+    userGuideWindow.loadURL(path.join('file:///', nDirName, 'assets', 'UserGuide.html'));
+
+    userGuideWindow.setMenuBarVisibility(false);
+    //userGuideWindow.webContents.openDevTools()
+    userGuideWindow.once('ready-to-show', () => { userGuideWindow.show(); });
+    userGuideWindow.on('focus', () => {
+      globalShortcut.register('CommandOrControl+F', function () {
+        if (userGuideWindow && userGuideWindow.webContents) {
+          console.log('sending on-find')
+          let r=Math.random()
+          userGuideWindow.webContents.send('on-find', r);
+        }
+      });
+    });
+    userGuideWindow.on('blur', () => {
+      globalShortcut.unregister('CommandOrControl+F');
+    });
+    userGuideWindow.on('closed', () => { userGuideWindow = null; });
+  }
+}
+
 // ------<< app.on('activate')-------------------
 
 //______________    << startup <<_______________________________________
@@ -545,11 +585,10 @@ function cleanUpApplication() {
     appRunner.process=null
   }
   if (!!pointRProcess) {
-    pointRProcess.kill();
-    pointRProcess=null;
-
     if (killStr != "")
       child.execSync(killStr)
+    pointRProcess.kill();
+    pointRProcess=null;
   }
   
 }
@@ -557,6 +596,7 @@ function cleanUpApplication() {
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
   console.log('EVENT::window-all-closed')
+  globalShortcut.unregister('CommandOrControl+F')
   /*	if( !confirmExit ){
             
             //event.preventDefault();
@@ -567,7 +607,7 @@ app.on('window-all-closed', function () {
     */
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
-  // cleanUpApplication()
+  cleanUpApplication()
 })
 //------------------<< cleanUp------------------------------------
 

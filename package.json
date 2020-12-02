@@ -24,6 +24,13 @@
       "src/**/*",
       "node_modules/**/*"
     ],
+    "fileAssociations": [
+      {
+        "ext": "pprj",
+        "name": "pointr File",
+        "role": "Editor"
+      }
+    ],
     "extraResources": [
       {
         "from": "../library/",
@@ -71,8 +78,8 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "clipboard": "^2.0.4",
-    "electron": "^8.3.1",
-    "electron-builder": "^22.7.0"
+    "electron": "^11.0.3",
+    "electron-builder": "^22.9.1"
   },
   "bugs": {
     "url": "https://github.com/mslegrand/pointRDeployR/issues"
@@ -80,11 +87,14 @@
   "homepage": "https://github.com/mslegrand/pointRDeployR#readme",
   "dependencies": {
     "axios": "^0.19.2",
-    "chokidar": "^3.4.0",
+    "chokidar": "^3.4.3",
     "cross-spawn": "^7.0.3",
     "electron-find": "^1.0.5",
+    "electron-log": "^4.3.0",
     "electron-version": "^2.0.1",
     "normalize-path": "^3.0.0",
+    "npm": "^6.14.9",
+    "npm-check-updates": "^10.2.2",
     "replace-string": "^2.0.0"
   }
 }
