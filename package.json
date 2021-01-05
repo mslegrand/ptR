@@ -86,7 +86,7 @@
   },
   "homepage": "https://github.com/mslegrand/pointRDeployR#readme",
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "chokidar": "^3.4.3",
     "cross-spawn": "^7.0.3",
     "electron-find": "^1.0.5",
