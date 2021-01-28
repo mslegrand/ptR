@@ -78,7 +78,7 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "clipboard": "^2.0.4",
-    "electron": "^11.0.3",
+    "electron": "^9.4.0",
     "electron-builder": "^22.9.1"
   },
   "bugs": {
