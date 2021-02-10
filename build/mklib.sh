@@ -12,6 +12,7 @@ cp -rf $libPath/shinyDMDMenu .
 cp -rf $libPath/shinyjqui .
 cp -rf $libPath/rowPicker .
 cp -rf $libPath/shinyAce .
+cp -rf $libPath/jqScrollBar .
 popd
 rm -rf ../library
 cp -rf ./assets/library ..
