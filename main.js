@@ -169,6 +169,7 @@ const nDirName = path.normalize(__dirname)
 //eventually may want to move this into pointRRunner
 function createPointRWindow(){
   let {width, height} = store.get('windowBounds')
+  
   pointRWindow = new BrowserWindow({
     icon: path.join(nDirName, 'build/icons/icon.icns'),
     webPreferences: {
@@ -182,6 +183,7 @@ function createPointRWindow(){
     height: height,
     title: "ptR"
   }) // browserWindow 
+  
   pointRWindow.webContents.once('dom-ready', () => {
     console.log(new Date().toISOString() + '::pointRWindow loaded')
     setTimeout(() => {
@@ -198,10 +200,10 @@ function createPointRWindow(){
   pointRWindow.setMenu(null)
   pointRWindow.setMenuBarVisibility(false)
   //pointRWindow.webContents.setZoomFactor(0.5)
-  // pointRWindow.webContents.openDevTools() // Open the DevTools for debugging
+  //pointRWindow.webContents.openDevTools() // Open the DevTools for debugging
   pointRWindow.on('close', function (event) {
-    // console.log("pointRWindow::close event")
-    // console.log("confirmExit=" + JSON.stringify(confirmExit))
+     console.log("pointRWindow::close event")
+     console.log("confirmExit=" + JSON.stringify(confirmExit))
     if (!confirmExit) {
       event.preventDefault();
       console.log("pointRWindow:: after e.preventDefault()")
@@ -419,6 +421,7 @@ const tryStartPointRWebserver = async (loadingWindow) =>{
     throw('dead')
   } 
   await portHelper.isAlive(pointRRunner.port )
+  console.log('about to createPointRWindow')
   createPointRWindow( )
   return('success')
 } 

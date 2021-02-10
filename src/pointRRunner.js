@@ -2,6 +2,7 @@
 const MACOS   = "darwin"
 const WINDOWS = "win32"
 const LINUX   = "linux"
+const log = require('electron-log');
 
 //const child      = require('child_process')
 const child      = require('cross-spawn')
@@ -34,7 +35,7 @@ var getPtRVersion=function (path2lib){
 	return ptR_version;
 }
 
-exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC)=>{
+exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC, initialPointRProject)=>{
   if(!!exports.process){ //idiot check
     console.log('cannot startPointRProcess: already started?')
     return;
@@ -52,7 +53,19 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC)=>{
   var erLib = path2lib+";"+R_LIBS_USER; 
   var libShinyCmd     = "library('shiny');library('pointR');";
   const HOME =  os.homedir().replace(/\\/gi, '/')
-  var optionsCmd  = "shiny::shinyOptions(electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + HOME + "');";
+  //var optionsCmd  = "shiny::shinyOptions(electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + HOME + "');";
+  var optionsCmd  = "electron=TRUE, ptRVersion=" + ptR_Version +"," + "HOME='" + HOME + "'";
+  
+  
+ 
+  if(  !!initialPointRProject && typeof initialPointRProject !== 'undefined' && !!initialPointRProject.match(/\.pprj$/gi)){
+    
+   optionsCmd=optionsCmd + ", initialPointRProject='"+initialPointRProject+"'";
+  }
+  
+  // console.log("\n-------------- optionsCmd= "+ optionsCmd);
+  optionsCmd="shiny::shinyOptions("+optionsCmd+");";
+  
   var libPathCmd="";
   var path2pointR="";
 

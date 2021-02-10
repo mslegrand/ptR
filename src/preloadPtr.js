@@ -43,3 +43,19 @@ window.readText=function(){
 	console.log('window.readText');
 	return window.clipboard.readText();
 }
+
+// function stopDefaultEvent (event) { 
+// 	event.preventDefault();
+// 	return false;
+// }
+
+//window.ondragover = stopDefaultEvent;
+//window.ondrop = stopDefaultEvent;
+// window.addEventListener('drop', function (e) {
+// 	e.preventDefault();
+// 	e.stopPropagation();
+// 	console.log('fuck-----------------------------')
+// 	for (let f of e.dataTransfer.files) {
+// 	  console.log('The file(s) you dragged: ', f)
+// 	  }
+// });
