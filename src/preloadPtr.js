@@ -23,11 +23,12 @@ window.sendToElectron = function(channel, arg1, arg2) {
 	window.ipcRenderer.send(channel, arg1, arg2);
 }
 
-window.sendExitConfirmation=function(){
+window.sendExitConfirmation = function() {
+	//alert('window.sendExitConfirmation')
 	console.log('window.sendExitConfirmation');
 	let exitVal= window.ipcRenderer.sendSync('confirmExitMssg', 'true');
 	console.log('exitVal='+exitVal);
-	return exitVal
+	return exitVal;
 }
 
 window.openLinkInExtBrower=function(link){
@@ -41,7 +42,7 @@ window.writeText=function(text){
 
 window.readText=function(){
 	console.log('window.readText');
-	return window.clipboard.readText();
+	return window.clipboard.readText();  
 }
 
 // function stopDefaultEvent (event) { 
@@ -59,3 +60,4 @@ window.readText=function(){
 // 	  console.log('The file(s) you dragged: ', f)
 // 	  }
 // });
+

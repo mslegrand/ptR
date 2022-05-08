@@ -59,7 +59,7 @@ watcher=chokidar.watch("./*", {
     ignoreInitial: true,
     alwaysStat: true
 });
-
+require('@electron/remote/main').initialize()
 
 resetWatcher = async ( listToWatch)=>{
   // console.log('inside resetWatcher')
@@ -164,6 +164,7 @@ var loadingWindow=null
 var pointRProcess = pointRRunner.process
 var pointRWindow=null
 var userGuideWindow=null
+
 const nDirName = path.normalize(__dirname)
 
 //eventually may want to move this into pointRRunner
@@ -174,9 +175,10 @@ function createPointRWindow(){
     icon: path.join(nDirName, 'build/icons/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
-      //contextIsolation: false,
+      contextIsolation: false,
       //zoomFactor: 1.Y0,
       preload: path.join(nDirName , "src/preloadPtr.js" )  //"preload.js"
+      //preload: `${__dirname}/src/preloadPtr.js`
     },
     show: false,
     width: width,
@@ -208,6 +210,7 @@ function createPointRWindow(){
       event.preventDefault();
       console.log("pointRWindow:: after e.preventDefault()")
       pointRWindow.webContents.send('appCloseCmd', 'now')
+      console.log('after pointRWindow.webContents.send appCloseCmd')
     }
   });
   pointRWindow.on('resize', ()=>{
@@ -274,7 +277,7 @@ ipcMain.on('cmdAppRun', (event, argPath, argTabId) => {
 ipcMain.on('confirmExitMssg', (event, arg) => {
   console.log(new Date().toISOString() + ':: ipcMain.on confirmExit')
   confirmExit = true;
-  // console.log(new Date().toISOString() + ':: confirmExit=' + confirmExit)
+  console.log(new Date().toISOString() + ':: confirmExit=' + confirmExit)
   event.returnValue = 'hello';
 })
 
@@ -295,7 +298,7 @@ ipcMain.on('cmdOpenLink',
 ipcMain.on('cmdOpenWindow',
   (event, arg1, arg2) => {
     console.log(new Date().toISOString() + ':: ipcMain.on cmdOpenWindow')
-    //userGuide.launch(arg1);
+    // userGuide.launch(arg1);
     newUserGuideWindow(arg1);
   }
 )
@@ -313,6 +316,7 @@ ipcMain.on('cmdStopAppRunner',
     }
   }
 )
+
 ipcMain.on('splashQuit', (event, arg1, arg2) => {
   // console.log(new Date().toISOString() + ':: ipcMain.on splashQuit')
   // console.log(arg1 + 'arg2')
@@ -368,13 +372,19 @@ const tryBooting = async() =>{
   const pdocOnpath = await pandoc.onPath(process.platform);
   console.log("pDocOnpath="+JSON.stringify(pdocOnpath))
   
-  if(!pdocOnpath){
+  if(!!pdocOnpath){
     pandocPath = await  pandoc.getPandocPath(); 
     console.log(JSON.stringify(pandocPath))
     RSTUDIO_PANDOC=pandocPath;
   } else {
     RSTUDIO_PANDOC=null;
   }
+
+  console.log("\n\n ***** In main RSTUDIO_PANDOC=" + JSON.stringify(RSTUDIO_PANDOC) )
+  
+
+  
+  
   pkgR.getInitialLibPaths().then( function(stdout){
     var libPaths=stdout.toString()
     console.log("libPaths="+libPaths)
@@ -451,7 +461,7 @@ app.on('ready', async () => {
     //icon: path.join(__dirname, 'build/icon.icns'),
     webPreferences: {
       nodeIntegration: false,
-      //contextIsolation: false,
+      contextIsolation: false,
       preload: path.join(nDirName , "src/preloadLoader.js")   //"preload.js"
     },
     width: 750, height: 400, title: 'svgR User Guide'
@@ -537,30 +547,44 @@ app.on('activate', function () {
 })
 
 function newUserGuideWindow(arg1) {
-  if (!userGuideWindow && arg1 == 'svgRUserGuide') {
+  if (!userGuideWindow ) {
+    let helpTitle=''
+    let helpFile=''
+    if(arg1 == 'svgRUserGuide'){
+      helpTitle="svgR User Guide"
+      helpFile='UserGuide.html'
+    } else if ( arg1=="preprocPtHelp" ){
+      helpTitle="Point Preprocessing Help"
+      helpFile='preprocPtHelp.html'
+    } else if (arg1== "preprocAttrHelp"){
+      helpTitle="Attribute Preprocessing Help"
+      helpFile='preprocAttrHelp.html'
+    }
     userGuideWindow = new BrowserWindow({
       width: 1000, height: 600, show: false,
-      title: "svgR User Guide",
-
+      title: helpTitle,
+ 
       webPreferences: {
         nodeIntegration: true,
         enableRemoteModule: true,
 
-        //contextIsolation: false,
+        contextIsolation: false,
         defaultFontFamily: 'Times New Roman',
         preload: path.join(nDirName, "src/preloadUserGuide.js")
       }
     });
     // console.log('loading UserGuide...')
-    userGuideWindow.loadURL(path.join('file:///', nDirName, 'assets', 'UserGuide.html'));
+    
+    userGuideWindow.loadURL(path.join('file:///', nDirName, 'assets', helpFile));
 
     userGuideWindow.setMenuBarVisibility(false);
-    //userGuideWindow.webContents.openDevTools()
+    // userGuideWindow.webContents.openDevTools()
+    require("@electron/remote/main").enable(userGuideWindow.webContents)
     userGuideWindow.once('ready-to-show', () => { userGuideWindow.show(); });
     userGuideWindow.on('focus', () => {
       globalShortcut.register('CommandOrControl+F', function () {
         if (userGuideWindow && userGuideWindow.webContents) {
-          console.log('sending on-find')
+          console.log('CommandOrControl+F sending on-find')
           let r=Math.random()
           userGuideWindow.webContents.send('on-find', r);
         }
@@ -582,6 +606,7 @@ function newUserGuideWindow(arg1) {
 
 function cleanUpApplication() {
   console.log(new Date().toISOString() + '::cleanUpApplication')
+  watcher.close() //this is required to prevent SIGABRT error code 1
   app.quit()
   if (!!appRunner.process) {
     appRunner.process.kill();

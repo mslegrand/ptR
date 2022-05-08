@@ -33,7 +33,13 @@ createAppRunnerWindow =function () { // may need to redo this with a delay scree
   if(!portAppRunner){
       throw('app runner port is bad')
   }
-  let runnerWindow = new BrowserWindow({ webPreferences: { nodeIntegration: false }, show: false, width: 1200, height: 600, title: "appRunner" })
+  let runnerWindow = new BrowserWindow({ webPreferences: { 
+    nodeIntegration: false 
+  }, 
+  show: false, 
+  width: 1200, height: 600, 
+   title: "appRunner" 
+})
   runnerWindow.webContents.openDevTools()
   runnerWindow.loadURL('http://127.0.0.1:' + portAppRunner)
   return runnerWindow

@@ -13,7 +13,7 @@ const normalize = require('normalize-path');
 // var missingPackages=reqPackages+ "tt<-setdiff(unlist(strsplit(reqPk,' ')),installed.packages()[,1]);" 
 // var missingScript=missingPackages+"cat(paste0(tt, collapse=' '));"
 
-const reqPackages="reqPk<-'stringr shiny shinyjs R.utils jsonlite shinyFiles shinythemes colourpicker shinyWidgets bsplus fs knitr tidyverse';"
+const reqPackages="reqPk<-'stringr shiny shinyjs R.utils jsonlite shinyFiles shinythemes colourpicker shinyWidgets bsplus fs rmarkdown knitr tidyverse';"
 const missingPackages=reqPackages+"tt<-setdiff(unlist(strsplit(reqPk, ' ')), installed.packages()[,1]);"
 //const missingPackages=reqPackages+"tt<-unlist(strsplit(reqPk, ' '));"
 const missingScript=missingPackages+"cat(paste0(tt, collapse=' '));"

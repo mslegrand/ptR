@@ -135,6 +135,8 @@ exports.startPointRProcess = async (path2lib, R_LIBS_USER, RSTUDIO_PANDOC, initi
   console.log('****  env.HOME='+env.HOME)
   console.log('****  env.R_LIBS_USER='+env.R_LIBS_USER)
   
+  console.log("In pointRRunner RSTUDIO_PANDOC=" + JSON.stringify(RSTUDIO_PANDOC) )
+  
   if(!! RSTUDIO_PANDOC){
     env.RSTUDIO_PANDOC = RSTUDIO_PANDOC;
   }

@@ -1,9 +1,14 @@
 
 
-const { remote, ipcRenderer } = require('electron')
+const {  ipcRenderer } = require('electron');
+const remote =require('@electron/remote')
 const FindInPage = require('electron-find').FindInPage;
+//import { remote, ipcRenderer } from 'electron'
+//import { FindInPage } from 'electron-find'
 
-window.clipboard = require('electron').clipboard;
+//var $ = require(jquery);
+
+window.Clipboard = require('electron').clipboard;
 
 // window.addEventListener("keydown", (e) => {
 //             if ((e.ctrlKey || e.metaKey) && e.keyCode === 70) {
@@ -13,6 +18,7 @@ window.clipboard = require('electron').clipboard;
 // }, false);
 
 ipcRenderer.on('on-find', (arg) => {
+      //console.log('new Find in Page');
       let findInPage = new FindInPage(remote.getCurrentWebContents(), {
             boxBgColor: '#333',
             boxShadowColor: '#000',
@@ -23,13 +29,15 @@ ipcRenderer.on('on-find', (arg) => {
             textHoverBgColor: '#555',
             caseSelectedColor: '#555'
           });
+      //console.log('about to open findInPage')
       findInPage.openFindWindow()
+      //console.log('findInPage should be open')
 });
 
 
 window.findWindow=function(){
       let findInPage = new FindInPage(remote.getCurrentWebContents());  
-      findInPage.openFindWindow()
+      findInPage.openFindWindow();
 }
 
 window.copySelection=function( text){
