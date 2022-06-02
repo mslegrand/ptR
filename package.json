@@ -101,7 +101,7 @@
     "electron-version": "^2.0.1",
     "fs": "0.0.1-security",
     "normalize-path": "^3.0.0",
-    "npm": "^8.8.0",
+    "npm": "^8.11.0",
     "npm-check-updates": "^10.3.1",
     "path": "^0.12.7",
     "replace-string": "^2.0.0",
